@@ -392,7 +392,110 @@ def student_dashboard(request):
 
 @login_required
 def student_profile(request):
-    return HttpResponse("Student Profile")
+    """Edit student profile page"""
+    if not hasattr(request.user, 'user_type') or request.user.user_type != 'student':
+        messages.error(request, 'Access denied. Student account required.')
+        return redirect('core:login')
+    
+    try:
+        profile = request.user.student_profile
+        
+        if request.method == 'POST':
+            return update_student_profile(request, profile)
+        
+        # GET request - show the edit form
+        context = {
+            'profile': profile,
+            'user': request.user,
+            'education_entries': profile.education.all(),
+            'employment_entries': profile.employment.all(),
+            'skill_entries': profile.skills.all(),
+        }
+        return render(request, 'student_profile_edit.html', context)
+        
+    except StudentProfile.DoesNotExist:
+        messages.info(request, 'Please complete your student profile first.')
+        return redirect('core:student_profile_setup')
+
+def update_student_profile(request, profile):
+    """Handle student profile updates"""
+    try:
+        # Update user information
+        user = request.user
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.save()
+        
+        # Update profile information
+        profile.phone = request.POST.get('phone', '')
+        profile.academic_year = request.POST.get('academic_year', '')
+        profile.program = request.POST.get('program', '')
+        profile.currently_available = request.POST.get('currently_available', '')
+        profile.available_date = request.POST.get('available_date') or None
+        profile.availability_notes = request.POST.get('availability_notes', '')
+        profile.remote_preference = request.POST.get('remote_preference', '')
+        profile.location_flexibility = request.POST.get('location_flexibility', '')
+        profile.career_goals = request.POST.get('career_goals', '')
+        profile.additional_info = request.POST.get('additional_info', '')
+        profile.availability = request.POST.getlist('availability')
+        profile.save()
+        
+        # Update education entries (delete existing and recreate)
+        profile.education.all().delete()
+        education_count = 0
+        while f'education_institution_{education_count}' in request.POST:
+            institution = request.POST.get(f'education_institution_{education_count}')
+            if institution:
+                Education.objects.create(
+                    student=profile,
+                    institution=institution,
+                    degree=request.POST.get(f'education_degree_{education_count}', ''),
+                    field_of_study=request.POST.get(f'education_field_{education_count}', ''),
+                    gpa=request.POST.get(f'education_gpa_{education_count}') or None,
+                    start_date=request.POST.get(f'education_start_{education_count}') or None,
+                    end_date=request.POST.get(f'education_end_{education_count}') or None,
+                    is_current=bool(request.POST.get(f'education_current_{education_count}'))
+                )
+            education_count += 1
+        
+        # Update employment entries (delete existing and recreate)
+        profile.employment.all().delete()
+        employment_count = 0
+        while f'employment_company_{employment_count}' in request.POST:
+            company = request.POST.get(f'employment_company_{employment_count}')
+            if company:
+                Employment.objects.create(
+                    student=profile,
+                    company=company,
+                    position=request.POST.get(f'employment_position_{employment_count}', ''),
+                    start_date=request.POST.get(f'employment_start_{employment_count}') or None,
+                    end_date=request.POST.get(f'employment_end_{employment_count}') or None,
+                    description=request.POST.get(f'employment_description_{employment_count}', ''),
+                    is_current=bool(request.POST.get(f'employment_current_{employment_count}'))
+                )
+            employment_count += 1
+        
+        # Update skill entries (delete existing and recreate)
+        profile.skills.all().delete()
+        skill_count = 0
+        while f'skill_name_{skill_count}' in request.POST:
+            skill_name = request.POST.get(f'skill_name_{skill_count}')
+            if skill_name:
+                Skill.objects.create(
+                    student=profile,
+                    name=skill_name,
+                    level=request.POST.get(f'skill_level_{skill_count}', 'beginner'),
+                    experience_description=request.POST.get(f'skill_description_{skill_count}', '')
+                )
+            skill_count += 1
+        
+        messages.success(request, 'Your profile has been updated successfully!')
+        return redirect('core:student_dashboard')
+        
+    except Exception as e:
+        messages.error(request, f'Error updating profile: {str(e)}')
+        return redirect('core:student_profile')
 
 @login_required
 def employer_dashboard(request):

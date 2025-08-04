@@ -8,6 +8,9 @@
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     
@@ -146,47 +149,55 @@
         }
 
         .ai-annotation {
-            position: absolute;
-            right: -15px;
-            top: 0;
-            background: var(--mun-gold);
-            color: var(--mun-black);
-            padding: 8px 12px;
-            border-radius: 6px;
+            position: static;
+            background: var(--mun-blue);
+            color: var(--mun-white);
+            padding: 12px 16px;
+            border-radius: 12px 12px 12px 4px;
             font-size: 14px;
-            font-weight: 500;
-            box-shadow: 0 4px 12px rgba(255, 184, 28, 0.3);
-            z-index: 10;
-            max-width: 250px;
-            transform: translateX(100%);
+            font-weight: 400;
+            box-shadow: 0 2px 8px rgba(0, 123, 191, 0.2);
+            margin-top: 8px;
+            max-width: 100%;
+            line-height: 1.4;
+            animation: slideIn 0.3s ease-out;
         }
 
         .ai-annotation::before {
-            content: '';
-            position: absolute;
-            left: -8px;
-            top: 50%;
-            transform: translateY(-50%);
-            border: 8px solid transparent;
-            border-right-color: var(--mun-gold);
+            content: '🤖 AI Assistant: ';
+            font-weight: 600;
+            opacity: 0.9;
         }
 
         .ai-annotation.success {
             background: var(--mun-green);
             color: var(--mun-white);
+            border-radius: 12px 12px 12px 4px;
         }
 
         .ai-annotation.success::before {
-            border-right-color: var(--mun-green);
+            content: '✓ AI Assistant: ';
         }
 
         .ai-annotation.info {
             background: var(--mun-blue);
             color: var(--mun-white);
+            border-radius: 12px 12px 12px 4px;
         }
 
         .ai-annotation.info::before {
-            border-right-color: var(--mun-blue);
+            content: '💡 AI Assistant: ';
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .step-indicator {
@@ -313,18 +324,27 @@
         .remove-entry {
             background: none;
             border: none;
-            color: #9ca3af;
-            font-size: 1.2em;
+            color: var(--mun-grey-7);
+            font-size: 1.1rem;
             cursor: pointer;
-            padding: 5px;
-            border-radius: 4px;
+            padding: 8px;
+            border-radius: 50%;
             transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
         }
 
         .remove-entry:hover {
             color: var(--mun-red);
-            background: #fef2f2;
+            background: rgba(237, 41, 57, 0.1);
             transform: scale(1.1);
+        }
+
+        .remove-entry:active {
+            transform: scale(1.0);
         }
 
         /* Bootstrap Color Overrides */
@@ -485,17 +505,6 @@
         }
 
         @media (max-width: 768px) {
-            .ai-annotation {
-                position: static;
-                transform: none;
-                margin-top: 10px;
-                max-width: none;
-            }
-            
-            .ai-annotation::before {
-                display: none;
-            }
-
             .step {
                 margin: 0 5px;
             }
@@ -506,6 +515,11 @@
 
             .registration-container .form-container {
                 padding: 30px 20px;
+            }
+            
+            .ai-annotation {
+                font-size: 13px;
+                padding: 10px 12px;
             }
         }
     </style>
@@ -609,7 +623,8 @@
         let aiAnalysisTimeout;
         let annotations = {};
         let isAnalyzing = false;  // Prevent multiple simultaneous analyses
-        let analyzedFields = new Set();  // Track which fields have been analyzed
+        let fieldOriginalValues = new Map();  // Track original values to detect actual changes
+        let analyzedFieldVersions = new Map();  // Track analyzed versions to prevent re-analysis
 
         function analyzeField(field) {
             // Skip if already analyzing or field is empty
@@ -619,32 +634,42 @@
             
             // Create unique field identifier
             const fieldId = field.name || field.id;
-            const fieldValue = field.value.trim();
-            const fieldKey = `${fieldId}:${fieldValue}`;
+            const currentValue = field.value.trim();
             
-            // Skip if we've already analyzed this exact field/value combination
-            if (analyzedFields.has(fieldKey)) {
+            // Initialize original value if not set
+            if (!fieldOriginalValues.has(fieldId)) {
+                fieldOriginalValues.set(fieldId, currentValue);
+            }
+            
+            // Skip if we've already analyzed this exact value for this field
+            if (analyzedFieldVersions.get(fieldId) === currentValue) {
+                return;
+            }
+            
+            // Only analyze if the value has actually changed from original
+            if (fieldOriginalValues.get(fieldId) === currentValue && analyzedFieldVersions.has(fieldId)) {
                 return;
             }
             
             // Demo mode: Check for specific trigger text for experience descriptions
             if (fieldId && fieldId.includes('skill_description')) {
-                const lowerValue = fieldValue.toLowerCase();
+                const lowerValue = currentValue.toLowerCase();
                 if (lowerValue.includes('python web development')) {
                     showAnnotation(field, 'What specific Python frameworks have you used? Django, Flask, FastAPI?', 'info');
-                    analyzedFields.add(fieldKey);
+                    analyzedFieldVersions.set(fieldId, currentValue);
                     return;
                 } else if (lowerValue.includes('javascript')) {
                     showAnnotation(field, 'Have you worked with React, Vue, or Node.js? Consider mentioning specific projects.', 'info');
-                    analyzedFields.add(fieldKey);
+                    analyzedFieldVersions.set(fieldId, currentValue);
                     return;
                 } else if (lowerValue.includes('database')) {
                     showAnnotation(field, 'Which database systems? SQL (MySQL, PostgreSQL) or NoSQL (MongoDB, Redis)?', 'info');
-                    analyzedFields.add(fieldKey);
+                    analyzedFieldVersions.set(fieldId, currentValue);
                     return;
                 } else {
                     // For other text, just mark as analyzed without annotation
-                    analyzedFields.add(fieldKey);
+                    analyzedFieldVersions.set(fieldId, currentValue);
+                    removeAnnotation(field); // Remove any previous annotation
                     return;
                 }
             }
@@ -652,7 +677,7 @@
             clearTimeout(aiAnalysisTimeout);
             aiAnalysisTimeout = setTimeout(() => {
                 // Double-check field hasn't changed during timeout
-                if (field.value.trim() !== fieldValue) {
+                if (field.value.trim() !== currentValue) {
                     return;
                 }
                 
@@ -663,7 +688,7 @@
                 htmx.ajax('POST', '/api/content/validate-responses/', {
                     values: {
                         field_name: fieldId,
-                        field_value: fieldValue,
+                        field_value: currentValue,
                         csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
                     swap: 'none'
@@ -672,17 +697,17 @@
                         const data = JSON.parse(response.xhr.responseText);
                         if (data.validation && data.validation.message) {
                             showAnnotation(field, data.validation.message, data.validation.type || 'info');
-                            analyzedFields.add(fieldKey);
+                            analyzedFieldVersions.set(fieldId, currentValue);
                         }
                     } catch (e) {
                         console.warn('Failed to parse AI analysis response:', e);
                         // Still mark as analyzed to prevent retries
-                        analyzedFields.add(fieldKey);
+                        analyzedFieldVersions.set(fieldId, currentValue);
                     }
                 }).catch(function(error) {
                     console.warn('AI analysis request failed:', error);
                     // Still mark as analyzed to prevent retries
-                    analyzedFields.add(fieldKey);
+                    analyzedFieldVersions.set(fieldId, currentValue);
                 }).finally(function() {
                     isAnalyzing = false;
                 });
@@ -690,12 +715,15 @@
         }
 
         function showAnnotation(field, message, type) {
+            // Remove any existing annotation for this field first
+            removeAnnotation(field);
+            
             const annotation = document.createElement('div');
             annotation.className = `ai-annotation ${type}`;
             annotation.textContent = message;
             
-            field.parentElement.style.position = 'relative';
-            field.parentElement.appendChild(annotation);
+            // Insert annotation directly after the field
+            field.parentNode.insertBefore(annotation, field.nextSibling);
             
             annotations[field.id || field.name] = annotation;
         }
@@ -717,6 +745,12 @@
                     field.name === 'confirm_password' ||
                     field.id === 'confirm_password') {
                     return;
+                }
+                
+                // Capture original values for all fields
+                const fieldId = field.name || field.id;
+                if (fieldId && field.value) {
+                    fieldOriginalValues.set(fieldId, field.value.trim());
                 }
                 
                 // Use 'blur' event instead of 'input' to reduce frequency

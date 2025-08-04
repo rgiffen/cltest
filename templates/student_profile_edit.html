@@ -1,0 +1,561 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Profile - SuitableSkills{% endblock %}
+
+{% block content %}
+<div class="registration-container">
+    <div class="header">
+        <h1>Edit Your Profile</h1>
+        <p>Update your information and preferences</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>AI Assistant Active</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" id="profileEditForm">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="firstName" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="firstName" name="first_name" value="{{ user.first_name }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="lastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="lastName" name="last_name" value="{{ user.last_name }}" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" value="{{ profile.phone }}" placeholder="(709) 123-4567">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="academicYear" class="form-label">Academic Year</label>
+                            <select class="form-select" id="academicYear" name="academic_year" required>
+                                <option value="">Select year</option>
+                                <option value="freshman" {% if profile.academic_year == 'freshman' %}selected{% endif %}>Freshman</option>
+                                <option value="sophomore" {% if profile.academic_year == 'sophomore' %}selected{% endif %}>Sophomore</option>
+                                <option value="junior" {% if profile.academic_year == 'junior' %}selected{% endif %}>Junior</option>
+                                <option value="senior" {% if profile.academic_year == 'senior' %}selected{% endif %}>Senior</option>
+                                <option value="graduate" {% if profile.academic_year == 'graduate' %}selected{% endif %}>Graduate</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="program" class="form-label">Program/Major</label>
+                            <input type="text" class="form-control" id="program" name="program" value="{{ profile.program }}" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Education History -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Education History</h5>
+                </div>
+                <div class="card-body">
+                    <div id="educationContainer">
+                        {% for education in education_entries %}
+                        <div class="education-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Institution</label>
+                                    <input type="text" class="form-control" name="education_institution_{{ forloop.counter0 }}" value="{{ education.institution }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Degree/Program</label>
+                                    <input type="text" class="form-control" name="education_degree_{{ forloop.counter0 }}" value="{{ education.degree }}">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Field of Study</label>
+                                    <input type="text" class="form-control" name="education_field_{{ forloop.counter0 }}" value="{{ education.field_of_study }}">
+                                </div>
+                                <div class="col-md-2 mb-3">
+                                    <label class="form-label">GPA (Optional)</label>
+                                    <input type="number" class="form-control" name="education_gpa_{{ forloop.counter0 }}" value="{{ education.gpa|default:'' }}" step="0.01" min="0" max="4">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" name="education_start_{{ forloop.counter0 }}" value="{{ education.start_date|date:'Y-m-d'|default:'' }}">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">End Date</label>
+                                    <input type="date" class="form-control" name="education_end_{{ forloop.counter0 }}" value="{{ education.end_date|date:'Y-m-d'|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="education_current_{{ forloop.counter0 }}" id="educationCurrent{{ forloop.counter0 }}" {% if education.is_current %}checked{% endif %}>
+                                    <label class="form-check-label" for="educationCurrent{{ forloop.counter0 }}">Currently enrolled</label>
+                                </div>
+                                <button type="button" class="remove-entry" onclick="removeEducation(this)" title="Remove education entry"><i class="bi bi-trash3"></i></button>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="education-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Institution</label>
+                                    <input type="text" class="form-control" name="education_institution_0" placeholder="Memorial University of Newfoundland">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Degree/Program</label>
+                                    <input type="text" class="form-control" name="education_degree_0" placeholder="Bachelor of Science">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Field of Study</label>
+                                    <input type="text" class="form-control" name="education_field_0" placeholder="Computer Science">
+                                </div>
+                                <div class="col-md-2 mb-3">
+                                    <label class="form-label">GPA (Optional)</label>
+                                    <input type="number" class="form-control" name="education_gpa_0" step="0.01" min="0" max="4">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" name="education_start_0">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">End Date</label>
+                                    <input type="date" class="form-control" name="education_end_0">
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="education_current_0" id="educationCurrent0">
+                                    <label class="form-check-label" for="educationCurrent0">Currently enrolled</label>
+                                </div>
+                                <button type="button" class="remove-entry" onclick="removeEducation(this)" title="Remove education entry"><i class="bi bi-trash3"></i></button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" onclick="addEducation()">+ Add Education</button>
+                </div>
+            </div>
+
+            <!-- Employment History -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Employment History</h5>
+                </div>
+                <div class="card-body">
+                    <div id="employmentContainer">
+                        {% for employment in employment_entries %}
+                        <div class="employment-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Company/Organization</label>
+                                    <input type="text" class="form-control" name="employment_company_{{ forloop.counter0 }}" value="{{ employment.company }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Position Title</label>
+                                    <input type="text" class="form-control" name="employment_position_{{ forloop.counter0 }}" value="{{ employment.position }}">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" name="employment_start_{{ forloop.counter0 }}" value="{{ employment.start_date|date:'Y-m-d'|default:'' }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">End Date</label>
+                                    <input type="date" class="form-control" name="employment_end_{{ forloop.counter0 }}" value="{{ employment.end_date|date:'Y-m-d'|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="employment_description_{{ forloop.counter0 }}" rows="3">{{ employment.description }}</textarea>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="employment_current_{{ forloop.counter0 }}" id="employmentCurrent{{ forloop.counter0 }}" {% if employment.is_current %}checked{% endif %}>
+                                    <label class="form-check-label" for="employmentCurrent{{ forloop.counter0 }}">Currently employed</label>
+                                </div>
+                                <button type="button" class="remove-entry" onclick="removeEmployment(this)" title="Remove employment entry"><i class="bi bi-trash3"></i></button>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="employment-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Company/Organization</label>
+                                    <input type="text" class="form-control" name="employment_company_0" placeholder="Company name">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Position Title</label>
+                                    <input type="text" class="form-control" name="employment_position_0" placeholder="Job title">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" name="employment_start_0">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">End Date</label>
+                                    <input type="date" class="form-control" name="employment_end_0">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="employment_description_0" rows="3" placeholder="Describe your responsibilities and achievements..."></textarea>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="employment_current_0" id="employmentCurrent0">
+                                    <label class="form-check-label" for="employmentCurrent0">Currently employed</label>
+                                </div>
+                                <button type="button" class="remove-entry" onclick="removeEmployment(this)" title="Remove employment entry"><i class="bi bi-trash3"></i></button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" onclick="addEmployment()">+ Add Employment</button>
+                </div>
+            </div>
+
+            <!-- Skills & Experience -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Skills & Experience</h5>
+                </div>
+                <div class="card-body">
+                    <div id="skillsContainer">
+                        {% for skill in skill_entries %}
+                        <div class="skill-experience-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Skill Name</label>
+                                    <input type="text" class="form-control" name="skill_name_{{ forloop.counter0 }}" value="{{ skill.name }}">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Level</label>
+                                    <select class="form-select" name="skill_level_{{ forloop.counter0 }}">
+                                        <option value="beginner" {% if skill.level == 'beginner' %}selected{% endif %}>Beginner</option>
+                                        <option value="intermediate" {% if skill.level == 'intermediate' %}selected{% endif %}>Intermediate</option>
+                                        <option value="advanced" {% if skill.level == 'advanced' %}selected{% endif %}>Advanced</option>
+                                        <option value="expert" {% if skill.level == 'expert' %}selected{% endif %}>Expert</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-start justify-content-end pt-2">
+                                    <button type="button" class="remove-entry" onclick="removeSkill(this)" title="Remove skill entry"><i class="bi bi-trash3"></i></button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Experience Description</label>
+                                <textarea class="form-control" name="skill_description_{{ forloop.counter0 }}" rows="2" placeholder="Describe your experience with this skill... (Try: 'Python web development', 'JavaScript', or 'database')">{{ skill.experience_description }}</textarea>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="skill-experience-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Skill Name</label>
+                                    <input type="text" class="form-control" name="skill_name_0" placeholder="e.g., Python, JavaScript, Project Management">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Level</label>
+                                    <select class="form-select" name="skill_level_0">
+                                        <option value="beginner">Beginner</option>
+                                        <option value="intermediate">Intermediate</option>
+                                        <option value="advanced">Advanced</option>
+                                        <option value="expert">Expert</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-start justify-content-end pt-2">
+                                    <button type="button" class="remove-entry" onclick="removeSkill(this)" title="Remove skill entry"><i class="bi bi-trash3"></i></button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Experience Description</label>
+                                <textarea class="form-control" name="skill_description_0" rows="2" placeholder="Describe your experience with this skill... (Try: 'Python web development', 'JavaScript', or 'database')"></textarea>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" onclick="addSkill()">+ Add More Skills and Experience</button>
+                </div>
+            </div>
+
+            <!-- Availability -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Availability</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="weekends" id="weekends" {% if 'weekends' in profile.availability %}checked{% endif %}>
+                                <label class="form-check-label" for="weekends">Weekends</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="evenings" id="evenings" {% if 'evenings' in profile.availability %}checked{% endif %}>
+                                <label class="form-check-label" for="evenings">Evenings</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="summer" id="summer" {% if 'summer' in profile.availability %}checked{% endif %}>
+                                <label class="form-check-label" for="summer">Summer Break</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="parttime" id="parttime" {% if 'parttime' in profile.availability %}checked{% endif %}>
+                                <label class="form-check-label" for="parttime">Part-time during semester</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="coop" id="coop" {% if 'coop' in profile.availability %}checked{% endif %}>
+                                <label class="form-check-label" for="coop">Full-time co-op</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="currentlyAvailable" class="form-label">Currently Available</label>
+                            <select class="form-select" id="currentlyAvailable" name="currently_available">
+                                <option value="">Select status</option>
+                                <option value="yes" {% if profile.currently_available == 'yes' %}selected{% endif %}>Yes, immediately</option>
+                                <option value="no" {% if profile.currently_available == 'no' %}selected{% endif %}>No, not currently</option>
+                                <option value="limited" {% if profile.currently_available == 'limited' %}selected{% endif %}>Limited availability</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="availableDate" class="form-label">Available as of Date</label>
+                            <input type="date" class="form-control" id="availableDate" name="available_date" value="{{ profile.available_date|date:'Y-m-d'|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="availabilityNotes" class="form-label">Availability Notes</label>
+                        <textarea class="form-control" id="availabilityNotes" name="availability_notes" rows="3" placeholder="Any additional details about your availability...">{{ profile.availability_notes }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Work Preferences -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Work Preferences</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="remotePreference" class="form-label">Remote Work Preference</label>
+                            <select class="form-select" id="remotePreference" name="remote_preference">
+                                <option value="">Select preference</option>
+                                <option value="remote" {% if profile.remote_preference == 'remote' %}selected{% endif %}>Fully remote</option>
+                                <option value="hybrid" {% if profile.remote_preference == 'hybrid' %}selected{% endif %}>Hybrid (remote + in-person)</option>
+                                <option value="onsite" {% if profile.remote_preference == 'onsite' %}selected{% endif %}>On-site only</option>
+                                <option value="flexible" {% if profile.remote_preference == 'flexible' %}selected{% endif %}>Flexible</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="locationFlexibility" class="form-label">Location Flexibility</label>
+                            <select class="form-select" id="locationFlexibility" name="location_flexibility">
+                                <option value="">Select flexibility</option>
+                                <option value="local" {% if profile.location_flexibility == 'local' %}selected{% endif %}>Local area only</option>
+                                <option value="regional" {% if profile.location_flexibility == 'regional' %}selected{% endif %}>Regional (within province)</option>
+                                <option value="national" {% if profile.location_flexibility == 'national' %}selected{% endif %}>National</option>
+                                <option value="international" {% if profile.location_flexibility == 'international' %}selected{% endif %}>International</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="careerGoals" class="form-label">Career Goals</label>
+                        <textarea class="form-control" id="careerGoals" name="career_goals" rows="3" placeholder="Describe your career goals and aspirations...">{{ profile.career_goals }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="additionalInfo" class="form-label">Additional Information</label>
+                        <textarea class="form-control" id="additionalInfo" name="additional_info" rows="3" placeholder="Any other information you'd like to share...">{{ profile.additional_info }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'core:student_dashboard' %}" class="btn btn-outline-secondary">← Back to Dashboard</a>
+                <button type="submit" class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let educationCount = {{ education_entries|length|default:1 }};
+let employmentCount = {{ employment_entries|length|default:1 }};
+let skillCount = {{ skill_entries|length|default:1 }};
+
+// Form submission handling
+document.getElementById('profileEditForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('saveProfileBtn');
+    const originalText = submitBtn.textContent;
+    
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
+    
+    // Re-enable if there's an error
+    setTimeout(() => {
+        if (submitBtn.disabled) {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+    }, 10000);
+});
+
+// Dynamic form management (reuse functions from student registration)
+function addEducation() {
+    const container = document.getElementById('educationContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names and IDs
+    const inputs = newItem.querySelectorAll('input');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${educationCount}`);
+        input.name = name;
+        input.value = '';
+        if (input.id) {
+            input.id = input.id.replace(/\d+$/, educationCount);
+        }
+    });
+    
+    // Update checkbox label
+    const checkbox = newItem.querySelector('.form-check-input');
+    const label = newItem.querySelector('.form-check-label');
+    if (checkbox && label) {
+        checkbox.id = `educationCurrent${educationCount}`;
+        label.setAttribute('for', `educationCurrent${educationCount}`);
+    }
+    
+    container.appendChild(newItem);
+    educationCount++;
+}
+
+function removeEducation(button) {
+    const container = document.getElementById('educationContainer');
+    if (container.children.length > 1) {
+        button.closest('.education-item').remove();
+    }
+}
+
+function addEmployment() {
+    const container = document.getElementById('employmentContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names and IDs
+    const inputs = newItem.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${employmentCount}`);
+        input.name = name;
+        input.value = '';
+        if (input.id) {
+            input.id = input.id.replace(/\d+$/, employmentCount);
+        }
+    });
+    
+    // Update checkbox label
+    const checkbox = newItem.querySelector('.form-check-input');
+    const label = newItem.querySelector('.form-check-label');
+    if (checkbox && label) {
+        checkbox.id = `employmentCurrent${employmentCount}`;
+        label.setAttribute('for', `employmentCurrent${employmentCount}`);
+    }
+    
+    container.appendChild(newItem);
+    employmentCount++;
+}
+
+function removeEmployment(button) {
+    const container = document.getElementById('employmentContainer');
+    if (container.children.length > 1) {
+        button.closest('.employment-item').remove();
+    }
+}
+
+function addSkill() {
+    const container = document.getElementById('skillsContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names and clear values
+    const inputs = newItem.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${skillCount}`);
+        input.name = name;
+        input.value = '';
+        
+        // Set up event listeners for new fields
+        if (input.type !== 'hidden') {
+            input.addEventListener('blur', function() {
+                if (this.value && this.value.trim().length > 2) {
+                    analyzeField(this);
+                }
+            });
+        }
+    });
+    
+    // Clear any existing annotations from the cloned item
+    const annotations = newItem.querySelectorAll('.ai-annotation');
+    annotations.forEach(annotation => annotation.remove());
+    
+    container.appendChild(newItem);
+    skillCount++;
+}
+
+function removeSkill(button) {
+    const container = document.getElementById('skillsContainer');
+    if (container.children.length > 1) {
+        button.closest('.skill-experience-item').remove();
+    }
+}
+
+// Initialize AI analysis for existing skill fields
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up event listeners for existing skill description fields
+    document.querySelectorAll('textarea[name^="skill_description_"]').forEach(field => {
+        field.addEventListener('blur', function() {
+            if (this.value && this.value.trim().length > 2) {
+                analyzeField(this);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
