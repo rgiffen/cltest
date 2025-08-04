@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Student Platform{% endblock %}</title>
+    <title>{% block title %}SuitableSkills{% endblock %}</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -56,6 +56,19 @@
             border: 1px solid var(--mun-warm-grey-6);
         }
 
+        /* Wider container for multi-step forms */
+        .registration-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--mun-white);
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            overflow: hidden;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--mun-warm-grey-6);
+        }
+
         .header {
             background: linear-gradient(135deg, var(--mun-main) 0%, var(--mun-navy) 100%);
             color: var(--mun-white);
@@ -93,6 +106,11 @@
 
         .form-container {
             padding: 40px;
+        }
+
+        /* Enhanced padding for registration forms */
+        .registration-container .form-container {
+            padding: 40px 60px;
         }
 
         .ai-annotation {
@@ -427,6 +445,13 @@
             color: var(--mun-red);
         }
 
+        @media (max-width: 1240px) {
+            .registration-container {
+                margin: 20px;
+                max-width: none;
+            }
+        }
+
         @media (max-width: 768px) {
             .ai-annotation {
                 position: static;
@@ -445,6 +470,10 @@
 
             .step-title {
                 display: none;
+            }
+
+            .registration-container .form-container {
+                padding: 30px 20px;
             }
         }
     </style>
@@ -501,6 +530,28 @@
                 return;
             }
             
+            // Demo mode: Check for specific trigger text for experience descriptions
+            if (fieldId && fieldId.includes('skill_description')) {
+                const lowerValue = fieldValue.toLowerCase();
+                if (lowerValue.includes('python web development')) {
+                    showAnnotation(field, 'What specific Python frameworks have you used? Django, Flask, FastAPI?', 'info');
+                    analyzedFields.add(fieldKey);
+                    return;
+                } else if (lowerValue.includes('javascript')) {
+                    showAnnotation(field, 'Have you worked with React, Vue, or Node.js? Consider mentioning specific projects.', 'info');
+                    analyzedFields.add(fieldKey);
+                    return;
+                } else if (lowerValue.includes('database')) {
+                    showAnnotation(field, 'Which database systems? SQL (MySQL, PostgreSQL) or NoSQL (MongoDB, Redis)?', 'info');
+                    analyzedFields.add(fieldKey);
+                    return;
+                } else {
+                    // For other text, just mark as analyzed without annotation
+                    analyzedFields.add(fieldKey);
+                    return;
+                }
+            }
+            
             clearTimeout(aiAnalysisTimeout);
             aiAnalysisTimeout = setTimeout(() => {
                 // Double-check field hasn't changed during timeout
@@ -528,9 +579,13 @@
                         }
                     } catch (e) {
                         console.warn('Failed to parse AI analysis response:', e);
+                        // Still mark as analyzed to prevent retries
+                        analyzedFields.add(fieldKey);
                     }
                 }).catch(function(error) {
                     console.warn('AI analysis request failed:', error);
+                    // Still mark as analyzed to prevent retries
+                    analyzedFields.add(fieldKey);
                 }).finally(function() {
                     isAnalyzing = false;
                 });

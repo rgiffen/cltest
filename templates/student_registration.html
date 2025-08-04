@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 
-{% block title %}Student Registration - Student Platform{% endblock %}
+{% block title %}Student Registration - SuitableSkills{% endblock %}
 
 {% block content %}
-<div class="main-container">
+<div class="registration-container">
     <div class="header">
         <h1>Student Profile</h1>
         <p>Create your profile with AI assistance</p>
@@ -54,12 +54,13 @@
             <div id="formContent">
                 <!-- Step 1: Resume Upload -->
                 <div class="step-content" id="stepContent1">
-                    <h3 class="mb-4">Resume Upload</h3>
+                    <h3 class="mb-4">Resume Upload <span class="text-muted">(Optional)</span></h3>
                     <div class="resume-upload" onclick="document.getElementById('resumeFile').click()">
                         <div class="upload-icon">📄</div>
-                        <h4>Upload your resume</h4>
-                        <p>Click to browse or drag and drop your resume (PDF, DOC, DOCX)</p>
-                        <input type="file" id="resumeFile" name="resume" accept=".pdf,.doc,.docx" style="display: none;">
+                        <h4>Upload your resume <small class="text-muted">(Optional)</small></h4>
+                        <p>Click to browse or drag and drop your resume (PDF, DOC, DOCX, TXT, MD, HTML)</p>
+                        <small class="text-muted">You can skip this step and fill out your profile manually</small></p>
+                        <input type="file" id="resumeFile" accept=".pdf,.doc,.docx,.txt,.md,.html" style="display: none;">
                     </div>
                     <div class="progress-container" id="progressContainer">
                         <p>Analyzing resume...</p>
@@ -108,18 +109,6 @@
                         <div class="col-md-6 mb-3">
                             <label for="program" class="form-label">Program/Major</label>
                             <input type="text" class="form-control" id="program" name="program" placeholder="e.g., Computer Science, Engineering, Business" required>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required minlength="8">
-                            <div class="form-text">Must be at least 8 characters long</div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="confirmPassword" class="form-label">Confirm Password</label>
-                            <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required>
                         </div>
                     </div>
                 </div>
@@ -235,7 +224,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Experience Description</label>
-                                <textarea class="form-control" name="skill_description_0" rows="2" placeholder="Describe your experience with this skill..."></textarea>
+                                <textarea class="form-control" name="skill_description_0" rows="2" placeholder="Describe your experience with this skill... (Try: 'Python web development', 'JavaScript', or 'database')"></textarea>
                             </div>
                         </div>
                     </div>

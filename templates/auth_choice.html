@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
-{% block title %}Welcome - Student Platform{% endblock %}
+{% block title %}Welcome - SuitableSkills{% endblock %}
 
 {% block content %}
-<div class="main-container">
+<div class="registration-container">
     <div class="header">
-        <h1>Welcome to Student Platform</h1>
+        <h1>Welcome to SuitableSkills</h1>
         <p>Connect students with exciting project opportunities</p>
         <div class="ai-status">
             <div class="ai-indicator"></div>
@@ -54,39 +54,69 @@
             </div>
         </div>
 
-        <div class="mt-4">
-            <h5 class="text-center mb-4">How it works</h5>
-            <div class="row text-start">
-                <div class="col-md-4">
-                    <div class="d-flex mb-3">
-                        <div class="me-3">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">1</div>
+        <div class="mt-5">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="text-center mb-4">For Students</h5>
+                    <div class="text-start">
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">1</div>
+                            </div>
+                            <div>
+                                <h6>Build Your Profile</h6>
+                                <small class="text-muted">Upload resume, showcase skills, set availability</small>
+                            </div>
                         </div>
-                        <div>
-                            <h6>Create Profile</h6>
-                            <small class="text-muted">Upload resume, add skills, set availability</small>
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">2</div>
+                            </div>
+                            <div>
+                                <h6>Get Matched</h6>
+                                <small class="text-muted">AI finds projects that match your skills and interests</small>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">3</div>
+                            </div>
+                            <div>
+                                <h6>Start Working</h6>
+                                <small class="text-muted">Connect with employers and gain valuable experience</small>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="d-flex mb-3">
-                        <div class="me-3">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">2</div>
+                <div class="col-md-6">
+                    <h5 class="text-center mb-4">For Employers</h5>
+                    <div class="text-start">
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">1</div>
+                            </div>
+                            <div>
+                                <h6>Post Projects</h6>
+                                <small class="text-muted">Define requirements, skills needed, and project details</small>
+                            </div>
                         </div>
-                        <div>
-                            <h6>AI Matching</h6>
-                            <small class="text-muted">Our AI analyzes skills and matches you with relevant projects</small>
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">2</div>
+                            </div>
+                            <div>
+                                <h6>Review Matches</h6>
+                                <small class="text-muted">AI recommends qualified students based on your criteria</small>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex mb-3">
-                        <div class="me-3">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">3</div>
-                        </div>
-                        <div>
-                            <h6>Connect & Work</h6>
-                            <small class="text-muted">Get connected with employers and start working on exciting projects</small>
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">3</div>
+                            </div>
+                            <div>
+                                <h6>Hire Talent</h6>
+                                <small class="text-muted">Connect with top students and build your team</small>
+                            </div>
                         </div>
                     </div>
                 </div>
