@@ -64,8 +64,8 @@
                     </div>
                     <div class="progress-container" id="progressContainer">
                         <p>Analyzing resume...</p>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progressFill"></div>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="progressFill"></div>
                         </div>
                         <p id="progressText">0%</p>
                     </div>
@@ -359,10 +359,19 @@ const totalSteps = 7;
 let educationCount = 1;
 let employmentCount = 1;
 let skillCount = 1;
+let skillsAnalyzed = false;  // Track if skills have been analyzed
+let originalSkillDescriptions = new Map();  // Track original skill description values
 
 // Step navigation
 function nextStep() {
     if (currentStep === 5) {
+        // Check if skill descriptions have changed since last analysis
+        if (skillsAnalyzed && !haveSkillDescriptionsChanged()) {
+            // No changes, proceed directly to next step
+            proceedToNextStep();
+            return;
+        }
+        
         // AI analysis before moving to availability
         reviewSkillsWithAI();
         return;
@@ -377,6 +386,11 @@ function nextStep() {
         currentStep++;
         document.getElementById(`stepContent${currentStep}`).classList.remove('d-none');
         updateStepIndicator(currentStep, 'active');
+        
+        // If entering skills step for first time, capture original descriptions
+        if (currentStep === 5 && originalSkillDescriptions.size === 0) {
+            setTimeout(() => captureOriginalSkillDescriptions(), 100);
+        }
         
         // Update navigation buttons
         updateNavigationButtons();
@@ -438,6 +452,47 @@ function updateNavigationButtons() {
     }
 }
 
+function proceedToNextStep() {
+    // Hide current step
+    document.getElementById(`stepContent${currentStep}`).classList.add('d-none');
+    updateStepIndicator(currentStep, 'completed');
+    
+    // Show next step
+    currentStep++;
+    document.getElementById(`stepContent${currentStep}`).classList.remove('d-none');
+    updateStepIndicator(currentStep, 'active');
+    
+    // Update navigation buttons
+    updateNavigationButtons();
+    
+    // Update hidden field
+    document.getElementById('currentStep').value = currentStep;
+}
+
+function captureOriginalSkillDescriptions() {
+    const skillDescInputs = document.querySelectorAll('textarea[name^="skill_description_"]');
+    skillDescInputs.forEach(input => {
+        if (input.name) {
+            originalSkillDescriptions.set(input.name, input.value.trim());
+        }
+    });
+}
+
+function haveSkillDescriptionsChanged() {
+    const skillDescInputs = document.querySelectorAll('textarea[name^="skill_description_"]');
+    
+    for (let input of skillDescInputs) {
+        if (input.name) {
+            const currentValue = input.value.trim();
+            const originalValue = originalSkillDescriptions.get(input.name) || '';
+            if (currentValue !== originalValue) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 // AI Skills Review
 function reviewSkillsWithAI() {
     const nextBtn = document.getElementById('nextBtn');
@@ -448,10 +503,14 @@ function reviewSkillsWithAI() {
     
     showAIAnalysisProgress();
     
-    // Simulate AI analysis with progress
-    let progress = 0;
+    // Reset progress bar to 0
     const progressBar = document.getElementById('aiProgressBar');
     const progressText = document.getElementById('aiProgressText');
+    progressBar.style.width = '0%';
+    progressText.textContent = 'Initializing analysis...';
+    
+    // Simulate AI analysis with progress
+    let progress = 0;
     
     const stages = [
         'Analyzing skill combinations...',
@@ -474,11 +533,16 @@ function reviewSkillsWithAI() {
             setTimeout(() => {
                 hideAIAnalysisProgress();
                 generateSkillAnnotations();
+                
+                // Mark as analyzed and capture current state
+                skillsAnalyzed = true;
+                captureOriginalSkillDescriptions();
+                
                 nextBtn.textContent = 'Continue to Availability →';
                 nextBtn.disabled = false;
                 
-                // Auto-proceed to next step
-                setTimeout(nextStep, 1000);
+                // Don't auto-proceed - let user click continue manually
+                // This prevents the loop issue
             }, 500);
         }
     }, 200);
@@ -494,17 +558,21 @@ function hideAIAnalysisProgress() {
 
 function generateSkillAnnotations() {
     const skillItems = document.querySelectorAll('.skill-experience-item');
-    const sampleAnnotations = [
-        { message: '✓ Great skill combination for web development', type: 'success' },
-        { message: 'Consider adding specific frameworks you\'ve used', type: 'info' },
-        { message: 'High demand skill in current market', type: 'success' },
-        { message: 'Adding portfolio examples would strengthen this', type: 'info' }
-    ];
     
+    // Use the trigger phrases for demo analysis
     skillItems.forEach((item, index) => {
-        const skillInput = item.querySelector('input[name^="skill_name_"]');
-        if (skillInput && skillInput.value && index < sampleAnnotations.length) {
-            showAnnotation(skillInput, sampleAnnotations[index].message, sampleAnnotations[index].type);
+        const skillNameInput = item.querySelector('input[name^="skill_name_"]');
+        const skillDescInput = item.querySelector('textarea[name^="skill_description_"]');
+        
+        if (skillDescInput && skillDescInput.value) {
+            const lowerValue = skillDescInput.value.toLowerCase();
+            if (lowerValue.includes('python web development')) {
+                showAnnotation(skillDescInput, 'What specific Python frameworks have you used? Django, Flask, FastAPI?', 'info');
+            } else if (lowerValue.includes('javascript')) {
+                showAnnotation(skillDescInput, 'Have you worked with React, Vue, or Node.js? Consider mentioning specific projects.', 'info');
+            } else if (lowerValue.includes('database')) {
+                showAnnotation(skillDescInput, 'Which database systems? SQL (MySQL, PostgreSQL) or NoSQL (MongoDB, Redis)?', 'info');
+            }
         }
     });
 }
@@ -628,6 +696,10 @@ function simulateResumeUpload() {
     
     progressContainer.style.display = 'block';
     
+    // Reset progress bar to 0
+    progressFill.style.width = '0%';
+    progressText.textContent = '0%';
+    
     let progress = 0;
     const interval = setInterval(() => {
         progress += Math.random() * 15;
@@ -672,20 +744,6 @@ function populateFromResume() {
 
 // Form submission
 function submitForm() {
-    // Validate passwords match
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    
-    if (password !== confirmPassword) {
-        alert('Passwords do not match. Please check your password fields.');
-        return;
-    }
-    
-    if (password.length < 8) {
-        alert('Password must be at least 8 characters long.');
-        return;
-    }
-    
     const form = document.getElementById('registrationForm');
     const formData = new FormData(form);
     
