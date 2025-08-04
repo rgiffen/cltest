@@ -593,13 +593,26 @@ function addSkill() {
     const container = document.getElementById('skillsContainer');
     const newItem = container.children[0].cloneNode(true);
     
-    // Update field names
+    // Update field names and clear values
     const inputs = newItem.querySelectorAll('input, textarea, select');
     inputs.forEach(input => {
         const name = input.name.replace(/_\d+$/, `_${skillCount}`);
         input.name = name;
         input.value = '';
+        
+        // Set up event listeners for new fields
+        if (input.type !== 'hidden') {
+            input.addEventListener('blur', function() {
+                if (this.value && this.value.trim().length > 2) {
+                    analyzeField(this);
+                }
+            });
+        }
     });
+    
+    // Clear any existing annotations from the cloned item
+    const annotations = newItem.querySelectorAll('.ai-annotation');
+    annotations.forEach(annotation => annotation.remove());
     
     container.appendChild(newItem);
     skillCount++;

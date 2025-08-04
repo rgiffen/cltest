@@ -45,58 +45,70 @@ def register(request):
     
     return render(request, 'register_choice.html')
 
-def student_register(request):
-    # If user is already logged in, redirect to dashboard
+def student_account_creation(request):
+    """Step 1: Account creation with email and password"""
+    # If user is already logged in, check if they need to complete their profile
     if request.user.is_authenticated:
+        if request.user.user_type == 'student':
+            # Check if they have a complete profile
+            try:
+                profile = request.user.student_profile
+                return redirect('core:student_dashboard')
+            except StudentProfile.DoesNotExist:
+                # User exists but needs to complete profile - redirect to profile setup
+                return redirect('core:student_profile_setup')
+        else:
+            # Not a student, redirect to appropriate place
+            return redirect('core:home')
+    
+    return render(request, 'student_account_creation.html')
+
+def student_profile_setup(request):
+    """Step 2: Profile setup wizard (after account creation)"""
+    # Check if user is authenticated and is a student
+    if not request.user.is_authenticated:
+        return redirect('core:student_register')
+    
+    if request.user.user_type != 'student':
         return redirect('core:home')
     
-    return render(request, 'student_registration.html')
+    # Check if profile already exists
+    try:
+        profile = request.user.student_profile
+        return redirect('core:student_dashboard')
+    except StudentProfile.DoesNotExist:
+        # Show profile setup wizard
+        return render(request, 'student_registration.html')
 
 @require_http_methods(["POST"])
 def process_student_registration(request):
+    """Handle the profile creation steps (after account is created)"""
     current_step = int(request.POST.get('current_step', 1))
     
-    if current_step == 7:  # Final step - create user and profile
-        return create_student_account(request)
+    if current_step == 7:  # Final step - create complete profile
+        return create_student_profile(request)
     
     # For other steps, just return success (client-side navigation)
     return JsonResponse({'status': 'success', 'step': current_step})
 
-def create_student_account(request):
+def create_student_profile(request):
+    """Create the complete student profile after account exists"""
     try:
-        # Check if email already exists
-        email = request.POST.get('email')
-        if User.objects.filter(email=email).exists():
+        # User should already be authenticated at this point
+        if not request.user.is_authenticated or request.user.user_type != 'student':
             return JsonResponse({
                 'status': 'error',
-                'message': 'An account with this email already exists. Please sign in instead.'
+                'message': 'Invalid session. Please start over.'
             })
         
-        # Get and validate password
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
+        user = request.user
         
-        if not password or len(password) < 8:
+        # Check if profile already exists
+        if hasattr(user, 'student_profile'):
             return JsonResponse({
                 'status': 'error',
-                'message': 'Password must be at least 8 characters long.'
+                'message': 'Profile already exists.'
             })
-        
-        if password != confirm_password:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Passwords do not match.'
-            })
-        
-        # Create user
-        user = User.objects.create_user(
-            username=email,  # Use email as username
-            email=email,
-            first_name=request.POST.get('first_name'),
-            last_name=request.POST.get('last_name'),
-            password=password,
-            user_type='student'
-        )
         
         # Create student profile
         profile = StudentProfile.objects.create(
@@ -161,9 +173,6 @@ def create_student_account(request):
                 )
             skill_count += 1
         
-        # Log the user in
-        login(request, user)
-        
         return JsonResponse({
             'status': 'success', 
             'message': 'Profile created successfully!',
@@ -174,6 +183,75 @@ def create_student_account(request):
         return JsonResponse({
             'status': 'error',
             'message': f'Error creating profile: {str(e)}'
+        })
+
+@require_http_methods(["POST"])
+def create_student_account(request):
+    """Create student account with email/password validation"""
+    try:
+        # Get form data
+        email = request.POST.get('email', '').strip().lower()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        
+        # Validate @mun.ca email
+        if not email.endswith('@mun.ca'):
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Only @mun.ca email addresses are accepted for student accounts.'
+            })
+        
+        # Check if email already exists
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({
+                'status': 'error',
+                'message': 'An account with this email already exists. Please sign in instead.'
+            })
+        
+        # Validate required fields
+        if not all([email, password, first_name, last_name]):
+            return JsonResponse({
+                'status': 'error',
+                'message': 'All fields are required.'
+            })
+        
+        # Validate password
+        if len(password) < 8:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Password must be at least 8 characters long.'
+            })
+        
+        if password != confirm_password:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Passwords do not match.'
+            })
+        
+        # Create user account
+        user = User.objects.create_user(
+            username=email,  # Use email as username
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            password=password,
+            user_type='student'
+        )
+        
+        # Log the user in
+        login(request, user)
+        
+        return JsonResponse({
+            'status': 'success', 
+            'message': 'Account created successfully!',
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error creating account: {str(e)}'
         })
 
 def employer_register(request):

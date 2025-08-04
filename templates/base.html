@@ -303,27 +303,59 @@
         // AI Analysis System
         let aiAnalysisTimeout;
         let annotations = {};
+        let isAnalyzing = false;  // Prevent multiple simultaneous analyses
+        let analyzedFields = new Set();  // Track which fields have been analyzed
 
         function analyzeField(field) {
+            // Skip if already analyzing or field is empty
+            if (isAnalyzing || !field.value || !field.value.trim()) {
+                return;
+            }
+            
+            // Create unique field identifier
+            const fieldId = field.name || field.id;
+            const fieldValue = field.value.trim();
+            const fieldKey = `${fieldId}:${fieldValue}`;
+            
+            // Skip if we've already analyzed this exact field/value combination
+            if (analyzedFields.has(fieldKey)) {
+                return;
+            }
+            
             clearTimeout(aiAnalysisTimeout);
             aiAnalysisTimeout = setTimeout(() => {
+                // Double-check field hasn't changed during timeout
+                if (field.value.trim() !== fieldValue) {
+                    return;
+                }
+                
+                isAnalyzing = true;
                 removeAnnotation(field);
                 
                 // Make HTMX request for AI analysis
                 htmx.ajax('POST', '/api/content/validate-responses/', {
                     values: {
-                        field_name: field.name || field.id,
-                        field_value: field.value,
+                        field_name: fieldId,
+                        field_value: fieldValue,
                         csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
                     swap: 'none'
                 }).then(function(response) {
-                    const data = JSON.parse(response.xhr.responseText);
-                    if (data.validation && data.validation.message) {
-                        showAnnotation(field, data.validation.message, data.validation.type || 'info');
+                    try {
+                        const data = JSON.parse(response.xhr.responseText);
+                        if (data.validation && data.validation.message) {
+                            showAnnotation(field, data.validation.message, data.validation.type || 'info');
+                            analyzedFields.add(fieldKey);
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse AI analysis response:', e);
                     }
+                }).catch(function(error) {
+                    console.warn('AI analysis request failed:', error);
+                }).finally(function() {
+                    isAnalyzing = false;
                 });
-            }, 1000);
+            }, 1500);  // Increased delay to prevent excessive requests
         }
 
         function showAnnotation(field, message, type) {
@@ -348,9 +380,34 @@
         // Initialize field monitoring
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('input, select, textarea').forEach(field => {
-                field.addEventListener('input', function() {
-                    analyzeField(this);
+                // Skip password confirmation fields and hidden fields
+                if (field.type === 'hidden' || 
+                    field.name === 'csrfmiddlewaretoken' ||
+                    field.name === 'confirm_password' ||
+                    field.id === 'confirm_password') {
+                    return;
+                }
+                
+                // Use 'blur' event instead of 'input' to reduce frequency
+                field.addEventListener('blur', function() {
+                    // Only analyze if field has meaningful content
+                    if (this.value && this.value.trim().length > 2) {
+                        analyzeField(this);
+                    }
                 });
+                
+                // Still use input for some key fields but with debouncing
+                if (field.name && (field.name.includes('email') || field.name.includes('name'))) {
+                    let inputTimeout;
+                    field.addEventListener('input', function() {
+                        clearTimeout(inputTimeout);
+                        inputTimeout = setTimeout(() => {
+                            if (this.value && this.value.trim().length > 2) {
+                                analyzeField(this);
+                            }
+                        }, 2000);
+                    });
+                }
             });
         });
     </script>

@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Student Account - Student Platform{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Create Your Student Account</h1>
+        <p>Join the platform with your Memorial University email</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>Account Setup</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Account Information</h5>
+                        <small class="text-muted">Step 1 of 2 - Create your account</small>
+                    </div>
+                    <div class="card-body">
+                        <form id="accountCreationForm">
+                            {% csrf_token %}
+                            
+                            <!-- Name Fields -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="first_name" class="form-label">First Name *</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="last_name" class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Email Field -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Memorial University Email *</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       placeholder="yourname@mun.ca" required>
+                                <div class="form-text">Only @mun.ca email addresses are accepted</div>
+                                <div class="invalid-feedback"></div>
+                                <div class="valid-feedback">
+                                    <i class="bi bi-check-circle"></i> Valid MUN email address
+                                </div>
+                            </div>
+                            
+                            <!-- Password Fields -->
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password *</label>
+                                <input type="password" class="form-control" id="password" name="password" 
+                                       minlength="8" required>
+                                <div class="form-text">Password must be at least 8 characters long</div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">Confirm Password *</label>
+                                <input type="password" class="form-control" id="confirm_password" 
+                                       name="confirm_password" required>
+                                <div class="invalid-feedback"></div>
+                                <div class="valid-feedback">
+                                    <i class="bi bi-check-circle"></i> Passwords match
+                                </div>
+                            </div>
+                            
+                            <!-- Terms and Conditions -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                                    <label class="form-check-label" for="terms">
+                                        I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> 
+                                        and <a href="#" class="text-decoration-none">Privacy Policy</a>
+                                    </label>
+                                    <div class="invalid-feedback">
+                                        You must agree to the terms and conditions
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Error/Success Messages -->
+                            <div id="messageContainer"></div>
+                            
+                            <!-- Submit Button -->
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary" id="createAccountBtn">
+                                    <span class="btn-text">Create Account & Continue</span>
+                                    <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Progress Indicator -->
+                <div class="text-center mt-4">
+                    <div class="d-flex justify-content-center align-items-center">
+                        <div class="step-dot active me-2"></div>
+                        <small class="text-muted me-3">Account Setup</small>
+                        <div class="step-dot me-2"></div>
+                        <small class="text-muted">Profile Creation</small>
+                    </div>
+                </div>
+                
+                <!-- Back to Home -->
+                <div class="text-center mt-3">
+                    <a href="{% url 'core:home' %}" class="text-decoration-none">
+                        ← Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('accountCreationForm');
+    const emailField = document.getElementById('email');
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    const createAccountBtn = document.getElementById('createAccountBtn');
+    const messageContainer = document.getElementById('messageContainer');
+    
+    // Real-time email validation
+    emailField.addEventListener('input', function() {
+        validateEmail();
+    });
+    
+    emailField.addEventListener('blur', function() {
+        validateEmail();
+    });
+    
+    // Real-time password confirmation
+    confirmPasswordField.addEventListener('input', function() {
+        validatePasswordMatch();
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (validateForm()) {
+            createAccount();
+        }
+    });
+    
+    function validateEmail() {
+        const email = emailField.value.trim().toLowerCase();
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@mun\.ca$/;
+        
+        emailField.classList.remove('is-valid', 'is-invalid');
+        
+        if (email === '') {
+            return false;
+        }
+        
+        if (emailPattern.test(email)) {
+            emailField.classList.add('is-valid');
+            return true;
+        } else {
+            emailField.classList.add('is-invalid');
+            emailField.nextElementSibling.nextElementSibling.textContent = 
+                'Please enter a valid @mun.ca email address';
+            return false;
+        }
+    }
+    
+    function validatePasswordMatch() {
+        const password = passwordField.value;
+        const confirmPassword = confirmPasswordField.value;
+        
+        confirmPasswordField.classList.remove('is-valid', 'is-invalid');
+        
+        if (confirmPassword === '') {
+            return false;
+        }
+        
+        if (password === confirmPassword) {
+            confirmPasswordField.classList.add('is-valid');
+            return true;
+        } else {
+            confirmPasswordField.classList.add('is-invalid');
+            confirmPasswordField.nextElementSibling.textContent = 'Passwords do not match';
+            return false;
+        }
+    }
+    
+    function validateForm() {
+        let isValid = true;
+        
+        // Clear previous validation
+        document.querySelectorAll('.form-control').forEach(field => {
+            field.classList.remove('is-invalid');
+        });
+        
+        // Validate required fields
+        const requiredFields = ['first_name', 'last_name', 'email', 'password', 'confirm_password'];
+        requiredFields.forEach(fieldName => {
+            const field = document.getElementById(fieldName);
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                field.nextElementSibling.textContent = 'This field is required';
+                isValid = false;
+            }
+        });
+        
+        // Validate email format
+        if (!validateEmail()) {
+            isValid = false;
+        }
+        
+        // Validate password length
+        if (passwordField.value.length < 8) {
+            passwordField.classList.add('is-invalid');
+            passwordField.nextElementSibling.nextElementSibling.textContent = 
+                'Password must be at least 8 characters long';
+            isValid = false;
+        }
+        
+        // Validate password match
+        if (!validatePasswordMatch()) {
+            isValid = false;
+        }
+        
+        // Validate terms checkbox
+        const termsCheckbox = document.getElementById('terms');
+        if (!termsCheckbox.checked) {
+            termsCheckbox.classList.add('is-invalid');
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+    
+    function createAccount() {
+        // Show loading state
+        const btnText = createAccountBtn.querySelector('.btn-text');
+        const btnSpinner = createAccountBtn.querySelector('.spinner-border');
+        
+        btnText.textContent = 'Creating Account...';
+        btnSpinner.classList.remove('d-none');
+        createAccountBtn.disabled = true;
+        
+        // Clear previous messages
+        messageContainer.innerHTML = '';
+        
+        // Prepare form data
+        const formData = new FormData(form);
+        
+        // Make API call
+        fetch('{% url "core:create_student_account" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success message
+                showMessage('success', 'Account created successfully! Redirecting to profile setup...');
+                
+                // Redirect to profile creation after a short delay
+                setTimeout(() => {
+                    window.location.href = '{% url "core:student_profile_setup" %}';
+                }, 1500);
+            } else {
+                // Show error message
+                showMessage('error', data.message || 'Failed to create account. Please try again.');
+                
+                // Reset button
+                resetButton();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('error', 'Network error. Please check your connection and try again.');
+            resetButton();
+        });
+    }
+    
+    function showMessage(type, message) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const icon = type === 'success' ? '✓' : '✗';
+        
+        messageContainer.innerHTML = `
+            <div class="alert ${alertClass} d-flex align-items-center" role="alert">
+                <span class="me-2">${icon}</span>
+                <div>${message}</div>
+            </div>
+        `;
+    }
+    
+    function resetButton() {
+        const btnText = createAccountBtn.querySelector('.btn-text');
+        const btnSpinner = createAccountBtn.querySelector('.spinner-border');
+        
+        btnText.textContent = 'Create Account & Continue';
+        btnSpinner.classList.add('d-none');
+        createAccountBtn.disabled = false;
+    }
+});
+</script>
+
+<style>
+.step-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #dee2e6;
+    display: inline-block;
+}
+
+.step-dot.active {
+    background-color: #0d6efd;
+}
+
+.form-control.is-valid {
+    border-color: #198754;
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+}
+
+.valid-feedback {
+    display: block;
+    color: #198754;
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+</style>
+{% endblock %}
