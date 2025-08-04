@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In - Student Platform{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Sign In</h1>
+        <p>Welcome back to Student Platform</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>Secure Login</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" id="loginForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" name="email" required 
+                               placeholder="your.email@mun.ca" value="{{ form.email.value|default:'' }}">
+                        <div class="form-text">Use your university email for student accounts</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="remember_me">
+                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+
+                <div class="text-center">
+                    <p class="text-muted">Don't have an account?</p>
+                    <a href="{% url 'core:register' %}" class="btn btn-outline-primary">Create Account</a>
+                </div>
+
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        <a href="#" class="text-decoration-none">Forgot your password?</a>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    submitBtn.textContent = 'Signing in...';
+    submitBtn.disabled = true;
+    
+    // Re-enable if there's an error (form will handle the actual submission)
+    setTimeout(() => {
+        if (submitBtn.disabled) {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+    }, 5000);
+});
+
+// Add real-time validation for email field
+document.getElementById('email').addEventListener('input', function() {
+    const email = this.value.toLowerCase();
+    const emailField = this;
+    
+    // Remove existing annotations
+    const existingAnnotation = emailField.parentElement.querySelector('.ai-annotation');
+    if (existingAnnotation) {
+        existingAnnotation.remove();
+    }
+    
+    if (email && email.includes('@mun.ca')) {
+        showAnnotation(emailField, '✓ University email format', 'success');
+    } else if (email && email.includes('@')) {
+        showAnnotation(emailField, 'University email recommended for students', 'info');
+    }
+});
+
+function showAnnotation(field, message, type) {
+    const annotation = document.createElement('div');
+    annotation.className = `ai-annotation ${type}`;
+    annotation.textContent = message;
+    
+    field.parentElement.style.position = 'relative';
+    field.parentElement.appendChild(annotation);
+}
+</script>
+{% endblock %}

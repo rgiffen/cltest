@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+
+{% block title %}Browse Projects - Student Platform{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Browse Projects</h1>
+        <p>Find projects that match your skills and interests</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>AI-Matched Recommendations</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <!-- AI Matching Progress (shown on initial load) -->
+        <div class="ai-analysis-progress mb-4" id="projectMatchingProgress" style="display: none;">
+            <div class="d-flex align-items-center mb-2">
+                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                <span>Finding projects that match your profile...</span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                     style="width: 0%" id="projectProgressBar"></div>
+            </div>
+            <small class="text-muted" id="projectProgressText">Analyzing your skills...</small>
+        </div>
+
+        <div id="projectsContainer">
+            {% if project_matches %}
+                <div class="row">
+                    <div class="col-md-8">
+                        <!-- Your Profile Summary -->
+                        <div class="card mb-4 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Your Profile Summary</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small><strong>Program:</strong> {{ student_profile.program }}</small><br>
+                                        <small><strong>Year:</strong> {{ student_profile.get_academic_year_display }}</small><br>
+                                        <small><strong>Skills:</strong> {{ student_profile.skills.count }}</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small><strong>Availability:</strong> {{ student_profile.get_currently_available_display|default:"Not set" }}</small><br>
+                                        <small><strong>Work Pref:</strong> {{ student_profile.get_remote_preference_display|default:"Not set" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Project Matches -->
+                        {% for project, match_data in project_matches %}
+                        <div class="card mb-4 project-card" data-score="{{ match_data.score }}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-0">{{ project.title }}</h5>
+                                    <small class="text-muted">{{ project.employer.company_name }} - {{ project.employer.company_location }}</small>
+                                </div>
+                                <div class="text-center">
+                                    <div class="badge bg-{% if match_data.score >= 80 %}success{% elif match_data.score >= 60 %}warning{% else %}secondary{% endif %} fs-6">
+                                        {{ match_data.score|floatformat:0 }}% Match
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">{{ project.description|truncatewords:40 }}</p>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <small><strong>Type:</strong> {{ project.get_project_type_display }}</small><br>
+                                        <small><strong>Duration:</strong> {{ project.get_duration_display }}</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small><strong>Work Style:</strong> {{ project.get_work_type_display }}</small><br>
+                                        <small><strong>Posted:</strong> {{ project.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Skills Required -->
+                                <div class="mb-3">
+                                    {% if project.required_skills %}
+                                    <div class="mb-2">
+                                        <strong>Required Skills:</strong>
+                                        {% for skill in project.required_skills %}
+                                            <span class="badge bg-danger me-1">{{ skill }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if project.preferred_skills %}
+                                    <div class="mb-2">
+                                        <strong>Preferred Skills:</strong>
+                                        {% for skill in project.preferred_skills %}
+                                            <span class="badge bg-info me-1">{{ skill }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Match Analysis -->
+                                <div class="mb-3">
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="progress mb-1" style="height: 6px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" 
+                                                     style="width: {{ match_data.skills_match }}%"></div>
+                                            </div>
+                                            <small class="text-muted">Skills: {{ match_data.skills_match|floatformat:0 }}%</small>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="progress mb-1" style="height: 6px;">
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     style="width: {{ match_data.availability_match }}%"></div>
+                                            </div>
+                                            <small class="text-muted">Availability: {{ match_data.availability_match|floatformat:0 }}%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Why This Matches -->
+                                {% if match_data.evidence %}
+                                <div class="mb-3">
+                                    <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#whyMatch{{ forloop.counter }}" aria-expanded="false">
+                                        Why this matches you
+                                    </button>
+                                    <div class="collapse mt-2" id="whyMatch{{ forloop.counter }}">
+                                        <div class="alert alert-light small">
+                                            <ul class="mb-0">
+                                                {% for evidence in match_data.evidence %}
+                                                <li>{{ evidence }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                            {% if match_data.missing_skills %}
+                                            <hr class="my-2">
+                                            <strong>Skills to develop:</strong>
+                                            {% for skill in match_data.missing_skills %}
+                                                <span class="badge bg-warning text-dark me-1">{{ skill }}</span>
+                                            {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Actions -->
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <button class="btn btn-primary btn-sm" onclick="expressInterest('{{ project.id }}', '{{ project.title }}')">
+                                            Express Interest
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="viewProject('{{ project.id }}')">
+                                            View Details
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">
+                                        {% if match_data.score >= 80 %}
+                                            <i class="text-success">★★★</i> Excellent match
+                                        {% elif match_data.score >= 60 %}
+                                            <i class="text-warning">★★☆</i> Good match
+                                        {% else %}
+                                            <i class="text-secondary">★☆☆</i> Possible match
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Sidebar -->
+                    <div class="col-md-4">
+                        <div class="card sticky-top">
+                            <div class="card-header">
+                                <h5 class="mb-0">Filter Projects</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Project Type</label>
+                                    <select class="form-select form-select-sm" id="typeFilter" onchange="filterProjects()">
+                                        <option value="">All Types</option>
+                                        <option value="web_dev">Web Development</option>
+                                        <option value="mobile_app">Mobile App</option>
+                                        <option value="data_analysis">Data Analysis</option>
+                                        <option value="research">Research</option>
+                                        <option value="design">Design</option>
+                                        <option value="marketing">Marketing</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Work Style</label>
+                                    <select class="form-select form-select-sm" id="workFilter" onchange="filterProjects()">
+                                        <option value="">All Styles</option>
+                                        <option value="remote">Remote</option>
+                                        <option value="onsite">On-site</option>
+                                        <option value="hybrid">Hybrid</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Duration</label>
+                                    <select class="form-select form-select-sm" id="durationFilter" onchange="filterProjects()">
+                                        <option value="">Any Duration</option>
+                                        <option value="1-2_weeks">1-2 weeks</option>
+                                        <option value="1_month">1 month</option>
+                                        <option value="2-3_months">2-3 months</option>
+                                        <option value="3-6_months">3-6 months</option>
+                                        <option value="6+_months">6+ months</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Minimum Match Score</label>
+                                    <input type="range" class="form-range" id="matchScoreFilter" min="0" max="100" value="0" 
+                                           onchange="filterByMatchScore(this.value)">
+                                    <div class="d-flex justify-content-between">
+                                        <small>0%</small>
+                                        <small id="matchScoreValue">0%</small>
+                                        <small>100%</small>
+                                    </div>
+                                </div>
+                                
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetProjectFilters()">
+                                    Reset Filters
+                                </button>
+                                
+                                <hr>
+                                
+                                <div class="text-center">
+                                    <h6>Your Matches</h6>
+                                    <div class="row text-center">
+                                        <div class="col">
+                                            <div class="h5 mb-0 text-success" id="excellentMatches">0</div>
+                                            <small>Excellent</small>
+                                        </div>
+                                        <div class="col">
+                                            <div class="h5 mb-0 text-warning" id="goodMatches">0</div>
+                                            <small>Good</small>
+                                        </div>
+                                        <div class="col">
+                                            <div class="h5 mb-0 text-secondary" id="possibleMatches">0</div>
+                                            <small>Possible</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <div class="alert alert-info small">
+                                    <strong>💡 Tip:</strong> Projects are sorted by how well they match your skills and preferences. Focus on the top matches for the best opportunities!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="display-1 mb-3">📋</div>
+                    <h3>No Projects Available</h3>
+                    <p class="text-muted mb-4">There are currently no active projects that match your profile.</p>
+                    <div class="alert alert-info">
+                        <h6>What you can do:</h6>
+                        <ul class="text-start mb-0">
+                            <li>Check back later as new projects are posted regularly</li>
+                            <li>Update your skills in your profile to match more projects</li>
+                            <li>Consider expanding your availability preferences</li>
+                            <li>Make sure your profile is complete and up-to-date</li>
+                        </ul>
+                    </div>
+                    <a href="{% url 'core:student_profile' %}" class="btn btn-primary mt-3">Update My Profile</a>
+                </div>
+            {% endif %}
+        </div>
+        
+        {% if project_matches %}
+        <div class="mt-4 text-center">
+            <a href="{% url 'core:student_dashboard' %}" class="btn btn-outline-secondary">← Back to Dashboard</a>
+            <button class="btn btn-primary ms-2" onclick="refreshProjects()">Refresh Matches</button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Interest Modal -->
+<div class="modal fade" id="interestModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Express Interest</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Express interest in: <strong id="projectTitle"></strong></p>
+                <div class="mb-3">
+                    <label class="form-label">Brief message (optional):</label>
+                    <textarea class="form-control" id="interestMessage" rows="3" 
+                              placeholder="Tell the employer why you're interested in this project..."></textarea>
+                </div>
+                <div class="alert alert-info small">
+                    <strong>Note:</strong> In a full implementation, this would notify the employer and create a connection request.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitInterest()">Send Interest</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentProjectId = null;
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateMatchSummary();
+    
+    // Show loading if we're refreshing
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('refresh') === 'true') {
+        showProjectMatchingProgress();
+    }
+});
+
+function updateMatchSummary() {
+    const projects = document.querySelectorAll('.project-card:not(.d-none)');
+    let excellent = 0, good = 0, possible = 0;
+    
+    projects.forEach(project => {
+        const score = parseFloat(project.dataset.score);
+        if (score >= 80) excellent++;
+        else if (score >= 60) good++;
+        else possible++;
+    });
+    
+    document.getElementById('excellentMatches').textContent = excellent;
+    document.getElementById('goodMatches').textContent = good;
+    document.getElementById('possibleMatches').textContent = possible;
+}
+
+function filterByMatchScore(minScore) {
+    document.getElementById('matchScoreValue').textContent = minScore + '%';
+    
+    const projects = document.querySelectorAll('.project-card');
+    projects.forEach(project => {
+        const score = parseFloat(project.dataset.score);
+        if (score >= minScore) {
+            project.classList.remove('d-none');
+        } else {
+            project.classList.add('d-none');
+        }
+    });
+    
+    updateMatchSummary();
+}
+
+function filterProjects() {
+    // This would implement filtering by type, work style, duration
+    console.log('Advanced filtering not fully implemented in demo');
+}
+
+function resetProjectFilters() {
+    document.getElementById('typeFilter').value = '';
+    document.getElementById('workFilter').value = '';
+    document.getElementById('durationFilter').value = '';
+    document.getElementById('matchScoreFilter').value = 0;
+    document.getElementById('matchScoreValue').textContent = '0%';
+    
+    document.querySelectorAll('.project-card').forEach(project => {
+        project.classList.remove('d-none');
+    });
+    
+    updateMatchSummary();
+}
+
+function expressInterest(projectId, title) {
+    currentProjectId = projectId;
+    document.getElementById('projectTitle').textContent = title;
+    document.getElementById('interestMessage').value = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('interestModal'));
+    modal.show();
+}
+
+function submitInterest() {
+    const message = document.getElementById('interestMessage').value;
+    
+    // In a real implementation, this would make an API call
+    alert(`Interest expressed in project ${currentProjectId}!\n\nIn a full implementation, this would:\n- Notify the employer\n- Add you to the project's interested students list\n- Create a potential connection`);
+    
+    bootstrap.Modal.getInstance(document.getElementById('interestModal')).hide();
+}
+
+function viewProject(projectId) {
+    alert(`In a full implementation, this would show detailed project information for project ${projectId}`);
+}
+
+function refreshProjects() {
+    window.location.href = window.location.pathname + '?refresh=true';
+}
+
+function showProjectMatchingProgress() {
+    document.getElementById('projectMatchingProgress').style.display = 'block';
+    document.getElementById('projectsContainer').style.display = 'none';
+    
+    let progress = 0;
+    const progressBar = document.getElementById('projectProgressBar');
+    const progressText = document.getElementById('projectProgressText');
+    
+    const stages = [
+        'Analyzing your skills...',
+        'Scanning available projects...',
+        'Calculating compatibility scores...',
+        'Ranking best matches...',
+        'Preparing recommendations...'
+    ];
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 18;
+        if (progress > 100) progress = 100;
+        
+        progressBar.style.width = progress + '%';
+        const stageIndex = Math.floor((progress / 100) * stages.length);
+        progressText.textContent = stages[Math.min(stageIndex, stages.length - 1)];
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                document.getElementById('projectMatchingProgress').style.display = 'none';
+                document.getElementById('projectsContainer').style.display = 'block';
+                updateMatchSummary();
+            }, 500);
+        }
+    }, 250);
+}
+</script>
+{% endblock %}

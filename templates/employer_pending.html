@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Pending Approval - Student Platform{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Account Under Review</h1>
+        <p>{{ profile.company_name }}</p>
+        <div class="ai-status">
+            <div class="ai-indicator" style="background: #fbbf24;"></div>
+            <span>Pending Admin Approval</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="text-center mb-4">
+                    <div class="display-1 mb-3">⏳</div>
+                    <h3>Your account is being reviewed</h3>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock"></i> Status: {{ profile.get_approval_status_display }}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>What's happening now:</h6>
+                        <ul class="mb-4">
+                            <li>Our admin team is reviewing your company information</li>
+                            <li>We're verifying your business details and contact information</li>
+                            <li>This process typically takes 24-48 hours</li>
+                        </ul>
+
+                        <h6>Company Information Submitted:</h6>
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Company:</strong></div>
+                            <div class="col-sm-8">{{ profile.company_name }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Industry:</strong></div>
+                            <div class="col-sm-8">{{ profile.get_industry_display }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Location:</strong></div>
+                            <div class="col-sm-8">{{ profile.company_location }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Contact:</strong></div>
+                            <div class="col-sm-8">{{ profile.contact_name }} ({{ profile.contact_title }})</div>
+                        </div>
+                        {% if profile.website %}
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Website:</strong></div>
+                            <div class="col-sm-8"><a href="{{ profile.website }}" target="_blank">{{ profile.website }}</a></div>
+                        </div>
+                        {% endif %}
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Submitted:</strong></div>
+                            <div class="col-sm-8">{{ profile.created_at|date:"M d, Y g:i A" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <h6><i class="bi bi-info-circle"></i> What happens next?</h6>
+                    <ul class="mb-0">
+                        <li><strong>Email notification:</strong> You'll receive an email once your account is approved</li>
+                        <li><strong>Access granted:</strong> You can then sign in and start posting projects</li>
+                        <li><strong>Student matching:</strong> Our AI will help match your projects with qualified students</li>
+                    </ul>
+                </div>
+
+                {% if profile.approval_status == 'rejected' %}
+                <div class="alert alert-danger mt-4">
+                    <h6><i class="bi bi-x-circle"></i> Application Not Approved</h6>
+                    {% if profile.approval_notes %}
+                    <p><strong>Reason:</strong> {{ profile.approval_notes }}</p>
+                    {% endif %}
+                    <p class="mb-0">Please contact support if you believe this was an error or if you'd like to resubmit your application.</p>
+                </div>
+                {% endif %}
+
+                <div class="text-center mt-4">
+                    <a href="{% url 'core:logout' %}" class="btn btn-outline-secondary">Sign Out</a>
+                    {% if profile.approval_status != 'rejected' %}
+                    <button class="btn btn-primary ms-2" onclick="location.reload()">Check Status</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

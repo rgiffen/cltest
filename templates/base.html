@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Student Platform{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .main-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .ai-status {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .ai-indicator {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .ai-annotation {
+            position: absolute;
+            right: -15px;
+            top: 0;
+            background: #fbbf24;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+            z-index: 10;
+            max-width: 250px;
+            transform: translateX(100%);
+        }
+
+        .ai-annotation::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 8px solid transparent;
+            border-right-color: #fbbf24;
+        }
+
+        .ai-annotation.success {
+            background: #10b981;
+        }
+
+        .ai-annotation.success::before {
+            border-right-color: #10b981;
+        }
+
+        .ai-annotation.info {
+            background: #3b82f6;
+        }
+
+        .ai-annotation.info::before {
+            border-right-color: #3b82f6;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 0 10px;
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .step-number.active {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .step-number.completed {
+            background: #10b981;
+            color: white;
+        }
+
+        .step-title {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .step-title.active {
+            color: #4f46e5;
+            font-weight: 600;
+        }
+
+        .step-title.completed {
+            color: #10b981;
+        }
+
+        .resume-upload {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .resume-upload:hover {
+            border-color: #4f46e5;
+            background: #f8faff;
+        }
+
+        .resume-upload.dragover {
+            border-color: #4f46e5;
+            background: #f0f4ff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #9ca3af;
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+            background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+        }
+
+        .ai-analysis-progress {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+        }
+
+        .remove-entry {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .remove-entry:hover {
+            color: #ef4444;
+            background: #fef2f2;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .ai-annotation {
+                position: static;
+                transform: none;
+                margin-top: 10px;
+                max-width: none;
+            }
+            
+            .ai-annotation::before {
+                display: none;
+            }
+
+            .step {
+                margin: 0 5px;
+            }
+
+            .step-title {
+                display: none;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // HTMX event handlers
+        document.body.addEventListener('htmx:beforeRequest', function(event) {
+            const button = event.detail.elt;
+            if (button.tagName === 'BUTTON') {
+                button.disabled = true;
+                const originalText = button.textContent;
+                button.textContent = 'Processing...';
+                button.setAttribute('data-original-text', originalText);
+            }
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            const button = event.detail.elt;
+            if (button.tagName === 'BUTTON' && button.hasAttribute('data-original-text')) {
+                button.disabled = false;
+                button.textContent = button.getAttribute('data-original-text');
+                button.removeAttribute('data-original-text');
+            }
+        });
+
+        // AI Analysis System
+        let aiAnalysisTimeout;
+        let annotations = {};
+
+        function analyzeField(field) {
+            clearTimeout(aiAnalysisTimeout);
+            aiAnalysisTimeout = setTimeout(() => {
+                removeAnnotation(field);
+                
+                // Make HTMX request for AI analysis
+                htmx.ajax('POST', '/api/content/validate-responses/', {
+                    values: {
+                        field_name: field.name || field.id,
+                        field_value: field.value,
+                        csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    swap: 'none'
+                }).then(function(response) {
+                    const data = JSON.parse(response.xhr.responseText);
+                    if (data.validation && data.validation.message) {
+                        showAnnotation(field, data.validation.message, data.validation.type || 'info');
+                    }
+                });
+            }, 1000);
+        }
+
+        function showAnnotation(field, message, type) {
+            const annotation = document.createElement('div');
+            annotation.className = `ai-annotation ${type}`;
+            annotation.textContent = message;
+            
+            field.parentElement.style.position = 'relative';
+            field.parentElement.appendChild(annotation);
+            
+            annotations[field.id || field.name] = annotation;
+        }
+
+        function removeAnnotation(field) {
+            const existingAnnotation = annotations[field.id || field.name];
+            if (existingAnnotation) {
+                existingAnnotation.remove();
+                delete annotations[field.id || field.name];
+            }
+        }
+
+        // Initialize field monitoring
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input, select, textarea').forEach(field => {
+                field.addEventListener('input', function() {
+                    analyzeField(this);
+                });
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+
+{% block title %}Post New Project - Student Platform{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Post New Project</h1>
+        <p>Find the perfect student for your project</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>AI-Powered Matching</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" id="projectForm">
+            {% csrf_token %}
+            
+            <!-- Project Basics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Project Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Project Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required
+                               placeholder="e.g., E-commerce Website Development">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="projectType" class="form-label">Project Type</label>
+                            <select class="form-select" id="projectType" name="project_type" required>
+                                <option value="">Select type</option>
+                                <option value="web_dev">Web Development</option>
+                                <option value="mobile_app">Mobile App</option>
+                                <option value="data_analysis">Data Analysis</option>
+                                <option value="research">Research</option>
+                                <option value="design">Design</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="duration" class="form-label">Expected Duration</label>
+                            <select class="form-select" id="duration" name="duration" required>
+                                <option value="">Select duration</option>
+                                <option value="1-2_weeks">1-2 weeks</option>
+                                <option value="1_month">1 month</option>
+                                <option value="2-3_months">2-3 months</option>
+                                <option value="3-6_months">3-6 months</option>
+                                <option value="6+_months">6+ months</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="workType" class="form-label">Work Style</label>
+                            <select class="form-select" id="workType" name="work_type" required>
+                                <option value="">Select work style</option>
+                                <option value="remote">Remote</option>
+                                <option value="onsite">On-site</option>
+                                <option value="hybrid">Hybrid</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Project Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="5" required
+                                  placeholder="Describe your project in detail. What needs to be built? What are the key requirements? What is the expected outcome?"></textarea>
+                        <div class="form-text">Be specific about requirements, technologies, and deliverables</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skills Requirements -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Skills & Requirements</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Required Skills</label>
+                        <div id="requiredSkillsContainer">
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" name="required_skills_0" 
+                                       placeholder="e.g., Python, JavaScript, SQL">
+                                <button type="button" class="btn btn-outline-danger" onclick="removeSkill(this, 'required')">Remove</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSkill('required')">+ Add Required Skill</button>
+                        <div class="form-text">Essential skills students must have</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Preferred Skills (Optional)</label>
+                        <div id="preferredSkillsContainer">
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" name="preferred_skills_0" 
+                                       placeholder="e.g., React, Docker, AWS">
+                                <button type="button" class="btn btn-outline-danger" onclick="removeSkill(this, 'preferred')">Remove</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSkill('preferred')">+ Add Preferred Skill</button>
+                        <div class="form-text">Nice-to-have skills that would be beneficial</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="minAcademicYear" class="form-label">Minimum Academic Year</label>
+                            <select class="form-select" id="minAcademicYear" name="min_academic_year">
+                                <option value="">No preference</option>
+                                <option value="freshman">Freshman or higher</option>
+                                <option value="sophomore">Sophomore or higher</option>
+                                <option value="junior">Junior or higher</option>
+                                <option value="senior">Senior or higher</option>
+                                <option value="graduate">Graduate students only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Preferred Programs</label>
+                            <input type="text" class="form-control" name="preferred_programs" 
+                                   placeholder="e.g., Computer Science, Engineering">
+                            <div class="form-text">Academic programs that would be most suitable</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Analysis Preview -->
+            <div class="card mb-4 d-none" id="aiAnalysisCard">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-robot"></i> AI Analysis Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="ai-analysis-progress" id="projectAnalysis">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            <span>Analyzing project requirements...</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                                 style="width: 0%" id="analysisProgressBar"></div>
+                        </div>
+                        <small class="text-muted mt-1" id="analysisProgressText">Parsing project description...</small>
+                    </div>
+                    
+                    <div class="analysis-results d-none" id="analysisResults">
+                        <h6>Potential Student Matches:</h6>
+                        <div id="matchPreview"></div>
+                        
+                        <h6 class="mt-3">Suggested Improvements:</h6>
+                        <div id="suggestionsList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'core:employer_dashboard' %}" class="btn btn-outline-secondary">← Back to Dashboard</a>
+                <div>
+                    <button type="button" class="btn btn-info me-2" onclick="previewMatching()">Preview AI Matching</button>
+                    <button type="submit" class="btn btn-primary">Post Project</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let requiredSkillCount = 1;
+let preferredSkillCount = 1;
+
+function addSkill(type) {
+    const container = document.getElementById(`${type}SkillsContainer`);
+    const count = type === 'required' ? requiredSkillCount++ : preferredSkillCount++;
+    
+    const skillGroup = document.createElement('div');
+    skillGroup.className = 'input-group mb-2';
+    skillGroup.innerHTML = `
+        <input type="text" class="form-control" name="${type}_skills_${count}" 
+               placeholder="Enter skill name">
+        <button type="button" class="btn btn-outline-danger" onclick="removeSkill(this, '${type}')">Remove</button>
+    `;
+    
+    container.appendChild(skillGroup);
+}
+
+function removeSkill(button, type) {
+    const container = document.getElementById(`${type}SkillsContainer`);
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+function previewMatching() {
+    const title = document.getElementById('title').value;
+    const description = document.getElementById('description').value;
+    
+    if (!title || !description) {
+        alert('Please fill in the project title and description first.');
+        return;
+    }
+    
+    // Show analysis card
+    document.getElementById('aiAnalysisCard').classList.remove('d-none');
+    document.getElementById('projectAnalysis').style.display = 'block';
+    document.getElementById('analysisResults').classList.add('d-none');
+    
+    // Simulate AI analysis
+    let progress = 0;
+    const progressBar = document.getElementById('analysisProgressBar');
+    const progressText = document.getElementById('analysisProgressText');
+    
+    const stages = [
+        'Parsing project description...',
+        'Extracting skill requirements...',
+        'Searching student database...',
+        'Ranking potential matches...',
+        'Generating recommendations...'
+    ];
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress > 100) progress = 100;
+        
+        progressBar.style.width = progress + '%';
+        const stageIndex = Math.floor((progress / 100) * stages.length);
+        progressText.textContent = stages[Math.min(stageIndex, stages.length - 1)];
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                showAnalysisResults();
+            }, 500);
+        }
+    }, 300);
+}
+
+function showAnalysisResults() {
+    document.getElementById('projectAnalysis').style.display = 'none';
+    document.getElementById('analysisResults').classList.remove('d-none');
+    
+    // Mock match preview
+    const matchPreview = document.getElementById('matchPreview');
+    matchPreview.innerHTML = `
+        <div class="alert alert-success">
+            <strong>Great news!</strong> Found <strong>12 potential student matches</strong> based on your requirements.
+            <ul class="mt-2 mb-0">
+                <li>5 students with strong technical skills match</li>
+                <li>3 students have relevant project experience</li>
+                <li>4 students are currently available</li>
+            </ul>
+        </div>
+    `;
+    
+    // Mock suggestions
+    const suggestionsList = document.getElementById('suggestionsList');
+    suggestionsList.innerHTML = `
+        <div class="alert alert-info">
+            <ul class="mb-0">
+                <li>Consider adding "Git" as a required skill for version control</li>
+                <li>Specify the target platforms (web browsers, mobile OS) for better matching</li>
+                <li>Your project timeline aligns well with the current semester</li>
+            </ul>
+        </div>
+    `;
+}
+
+// Add field monitoring for AI validation
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input, select, textarea').forEach(field => {
+        field.addEventListener('input', function() {
+            analyzeField(this);
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Profile - AI-Assisted Form</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .ai-status {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .ai-indicator {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .form-section {
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .skill-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .skill-item input[type="text"] {
+            flex: 1;
+        }
+
+        .skill-item select {
+            width: 150px;
+        }
+
+        .add-skill-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .add-skill-btn:hover {
+            background: #4338ca;
+        }
+
+        .resume-upload {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .resume-upload:hover {
+            border-color: #4f46e5;
+            background: #f8faff;
+        }
+
+        .resume-upload.dragover {
+            border-color: #4f46e5;
+            background: #f0f4ff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #9ca3af;
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .availability-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .availability-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .availability-option:hover {
+            background: #f3f4f6;
+        }
+
+        .availability-option input[type="checkbox"] {
+            width: auto;
+        }
+
+        .ai-annotation {
+            position: absolute;
+            right: -15px;
+            top: 0;
+            background: #fbbf24;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+            z-index: 10;
+            max-width: 250px;
+            transform: translateX(100%);
+        }
+
+        .ai-annotation::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 8px solid transparent;
+            border-right-color: #fbbf24;
+        }
+
+        .ai-annotation.success {
+            background: #10b981;
+        }
+
+        .ai-annotation.success::before {
+            border-right-color: #10b981;
+        }
+
+        .ai-annotation.info {
+            background: #3b82f6;
+        }
+
+        .ai-annotation.info::before {
+            border-right-color: #3b82f6;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+        }
+
+        .ai-suggestions {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .ai-suggestions h4 {
+            color: #0c4a6e;
+            margin-bottom: 10px;
+        }
+
+        .suggestion-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-item:hover {
+            background: #e0f2fe;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .availability-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .ai-annotation {
+                position: static;
+                transform: none;
+                margin-top: 10px;
+                max-width: none;
+            }
+            
+            .ai-annotation::before {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Student Profile</h1>
+            <p>Create your profile with AI assistance</p>
+            <div class="ai-status">
+                <div class="ai-indicator"></div>
+                <span>AI Assistant Active</span>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <form id="studentForm">
+                <!-- Basic Information Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Basic Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" placeholder="Enter your full name">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" placeholder="your.email@university.edu">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="phone">Phone</label>
+                            <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567">
+                        </div>
+                        <div class="form-group">
+                            <label for="academicYear">Academic Year</label>
+                            <select id="academicYear" name="academicYear">
+                                <option value="">Select year</option>
+                                <option value="freshman">Freshman</option>
+                                <option value="sophomore">Sophomore</option>
+                                <option value="junior">Junior</option>
+                                <option value="senior">Senior</option>
+                                <option value="graduate">Graduate</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="program">Program/Major</label>
+                        <input type="text" id="program" name="program" placeholder="e.g., Computer Science, Engineering, Business">
+                    </div>
+                </div>
+
+                <!-- Resume Upload Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Resume Upload</h3>
+                    <div class="resume-upload" onclick="document.getElementById('resumeFile').click()">
+                        <div class="upload-icon">📄</div>
+                        <h4>Upload your resume</h4>
+                        <p>Click to browse or drag and drop your resume (PDF, DOC, DOCX)</p>
+                        <input type="file" id="resumeFile" accept=".pdf,.doc,.docx" style="display: none;">
+                    </div>
+                    <div class="progress-container" id="progressContainer">
+                        <p>Analyzing resume...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p id="progressText">0%</p>
+                    </div>
+                </div>
+
+                <!-- Skills Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Skills</h3>
+                    <div id="skillsContainer">
+                        <div class="skill-item">
+                            <input type="text" placeholder="Skill name (e.g., Python, JavaScript, Project Management)" name="skillName">
+                            <select name="skillLevel">
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                                <option value="expert">Expert</option>
+                            </select>
+                            <button type="button" onclick="removeSkill(this)">Remove</button>
+                        </div>
+                    </div>
+                    <button type="button" class="add-skill-btn" onclick="addSkill()">+ Add Skill</button>
+                    
+                    <div class="ai-suggestions" id="skillSuggestions">
+                        <h4>AI Suggestions</h4>
+                        <div class="suggestion-item" onclick="applySuggestion('Machine Learning', 'intermediate')">
+                            Add "Machine Learning" as Intermediate skill based on your coursework
+                        </div>
+                        <div class="suggestion-item" onclick="applySuggestion('Git/Version Control', 'beginner')">
+                            Consider adding "Git/Version Control" - important for most projects
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Availability Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Availability</h3>
+                    <div class="availability-grid">
+                        <div class="availability-option">
+                            <input type="checkbox" id="weekends" name="availability" value="weekends">
+                            <label for="weekends">Weekends</label>
+                        </div>
+                        <div class="availability-option">
+                            <input type="checkbox" id="evenings" name="availability" value="evenings">
+                            <label for="evenings">Evenings</label>
+                        </div>
+                        <div class="availability-option">
+                            <input type="checkbox" id="summer" name="availability" value="summer">
+                            <label for="summer">Summer Break</label>
+                        </div>
+                        <div class="availability-option">
+                            <input type="checkbox" id="parttime" name="availability" value="parttime">
+                            <label for="parttime">Part-time during semester</label>
+                        </div>
+                        <div class="availability-option">
+                            <input type="checkbox" id="coop" name="availability" value="coop">
+                            <label for="coop">Full-time co-op</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="currentlyAvailable">Currently Available</label>
+                            <select id="currentlyAvailable" name="currentlyAvailable">
+                                <option value="">Select status</option>
+                                <option value="yes">Yes, immediately</option>
+                                <option value="no">No, not currently</option>
+                                <option value="limited">Limited availability</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="availableDate">Available as of Date</label>
+                            <input type="date" id="availableDate" name="availableDate">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="availabilityNotes">Availability Notes</label>
+                        <textarea id="availabilityNotes" name="availabilityNotes" rows="3" placeholder="Any additional details about your availability..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Preferences Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Work Preferences</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="remotePreference">Remote Work Preference</label>
+                            <select id="remotePreference" name="remotePreference">
+                                <option value="">Select preference</option>
+                                <option value="remote">Fully remote</option>
+                                <option value="hybrid">Hybrid (remote + in-person)</option>
+                                <option value="onsite">On-site only</option>
+                                <option value="flexible">Flexible</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="locationFlexibility">Location Flexibility</label>
+                            <select id="locationFlexibility" name="locationFlexibility">
+                                <option value="">Select flexibility</option>
+                                <option value="local">Local area only</option>
+                                <option value="regional">Regional (within state)</option>
+                                <option value="national">National</option>
+                                <option value="international">International</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">Create Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // AI Analysis System
+        let aiAnalysisTimeout;
+        let annotations = {};
+
+        // Form field monitoring
+        document.querySelectorAll('input, select, textarea').forEach(field => {
+            field.addEventListener('input', function() {
+                clearTimeout(aiAnalysisTimeout);
+                aiAnalysisTimeout = setTimeout(() => {
+                    analyzeField(this);
+                }, 1000);
+            });
+        });
+
+        function analyzeField(field) {
+            removeAnnotation(field);
+            
+            // Simulate AI analysis
+            setTimeout(() => {
+                const analysis = getAIAnalysis(field);
+                if (analysis) {
+                    showAnnotation(field, analysis.message, analysis.type);
+                }
+            }, 500);
+        }
+
+        function getAIAnalysis(field) {
+            const value = field.value.trim();
+            const fieldName = field.name || field.id;
+
+            // AI analysis rules
+            switch(fieldName) {
+                case 'name':
+                    if (value && value.split(' ').length >= 2) {
+                        return { message: '✓ Looks good!', type: 'success' };
+                    } else if (value) {
+                        return { message: 'Consider including your full name', type: 'warning' };
+                    }
+                    break;
+                
+                case 'email':
+                    if (value && value.includes('@') && value.includes('.edu')) {
+                        return { message: '✓ University email detected', type: 'success' };
+                    } else if (value && value.includes('@')) {
+                        return { message: 'Consider using your university email', type: 'info' };
+                    }
+                    break;
+                
+                case 'program':
+                    if (value && value.toLowerCase().includes('computer')) {
+                        setTimeout(() => {
+                            document.getElementById('skillSuggestions').style.display = 'block';
+                        }, 1000);
+                        return { message: 'Great! I can suggest relevant skills', type: 'info' };
+                    }
+                    break;
+                
+                case 'availabilityNotes':
+                    if (value && value.length > 50) {
+                        return { message: '✓ Detailed availability info', type: 'success' };
+                    } else if (value) {
+                        return { message: 'Consider adding more details', type: 'info' };
+                    }
+                    break;
+            }
+            
+            return null;
+        }
+
+        function showAnnotation(field, message, type) {
+            const annotation = document.createElement('div');
+            annotation.className = `ai-annotation ${type}`;
+            annotation.textContent = message;
+            
+            field.parentElement.style.position = 'relative';
+            field.parentElement.appendChild(annotation);
+            
+            annotations[field.id || field.name] = annotation;
+        }
+
+        function removeAnnotation(field) {
+            const existingAnnotation = annotations[field.id || field.name];
+            if (existingAnnotation) {
+                existingAnnotation.remove();
+                delete annotations[field.id || field.name];
+            }
+        }
+
+        // Skills management
+        function addSkill() {
+            const container = document.getElementById('skillsContainer');
+            const skillItem = document.createElement('div');
+            skillItem.className = 'skill-item';
+            skillItem.innerHTML = `
+                <input type="text" placeholder="Skill name" name="skillName">
+                <select name="skillLevel">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                    <option value="expert">Expert</option>
+                </select>
+                <button type="button" onclick="removeSkill(this)">Remove</button>
+            `;
+            container.appendChild(skillItem);
+        }
+
+        function removeSkill(button) {
+            button.parentElement.remove();
+        }
+
+        function applySuggestion(skillName, level) {
+            const skillInputs = document.querySelectorAll('input[name="skillName"]');
+            const lastSkillInput = skillInputs[skillInputs.length - 1];
+            
+            if (lastSkillInput.value === '') {
+                lastSkillInput.value = skillName;
+                const levelSelect = lastSkillInput.parentElement.querySelector('select[name="skillLevel"]');
+                levelSelect.value = level;
+            } else {
+                addSkill();
+                setTimeout(() => {
+                    const newSkillInputs = document.querySelectorAll('input[name="skillName"]');
+                    const newLastInput = newSkillInputs[newSkillInputs.length - 1];
+                    newLastInput.value = skillName;
+                    const levelSelect = newLastInput.parentElement.querySelector('select[name="skillLevel"]');
+                    levelSelect.value = level;
+                }, 100);
+            }
+            
+            document.getElementById('skillSuggestions').style.display = 'none';
+        }
+
+        // Resume upload simulation
+        document.getElementById('resumeFile').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                simulateResumeUpload();
+            }
+        });
+
+        function simulateResumeUpload() {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressContainer.style.display = 'block';
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                
+                progressFill.style.width = progress + '%';
+                progressText.textContent = Math.round(progress) + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        populateFromResume();
+                        progressContainer.style.display = 'none';
+                    }, 500);
+                }
+            }, 200);
+        }
+
+        function populateFromResume() {
+            // Simulate AI parsing results
+            document.getElementById('name').value = 'Sarah Chen';
+            document.getElementById('email').value = 'sarah.chen@university.edu';
+            document.getElementById('phone').value = '(555) 123-4567';
+            document.getElementById('academicYear').value = 'junior';
+            document.getElementById('program').value = 'Computer Science';
+            
+            // Add skills from resume
+            const resumeSkills = [
+                { name: 'Python', level: 'advanced' },
+                { name: 'JavaScript', level: 'intermediate' },
+                { name: 'React', level: 'intermediate' }
+            ];
+            
+            const skillInputs = document.querySelectorAll('input[name="skillName"]');
+            skillInputs[0].value = resumeSkills[0].name;
+            skillInputs[0].parentElement.querySelector('select').value = resumeSkills[0].level;
+            
+            resumeSkills.slice(1).forEach(skill => {
+                addSkill();
+                setTimeout(() => {
+                    const allSkillInputs = document.querySelectorAll('input[name="skillName"]');
+                    const lastInput = allSkillInputs[allSkillInputs.length - 1];
+                    lastInput.value = skill.name;
+                    lastInput.parentElement.querySelector('select').value = skill.level;
+                }, 100);
+            });
+            
+            // Trigger AI analysis for populated fields
+            setTimeout(() => {
+                document.querySelectorAll('input[value], select').forEach(field => {
+                    if (field.value) {
+                        analyzeField(field);
+                    }
+                });
+            }, 500);
+        }
+
+        // Form submission
+        document.getElementById('studentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Profile created successfully! In a real application, this would save to your database.');
+        });
+
+        // Drag and drop for resume upload
+        const uploadArea = document.querySelector('.resume-upload');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('resumeFile').files = files;
+                simulateResumeUpload();
+            }
+        });
+    </script>
+</body>
+</html>

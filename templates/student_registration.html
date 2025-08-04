@@ -1,0 +1,747 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Registration - Student Platform{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Student Profile</h1>
+        <p>Create your profile with AI assistance</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>AI Assistant Active</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <!-- Step Indicator -->
+        <div class="step-indicator" id="stepIndicator">
+            <div class="step" data-step="1">
+                <div class="step-number active" id="step1">1</div>
+                <div class="step-title active">Resume Upload</div>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-number" id="step2">2</div>
+                <div class="step-title">Basic Info</div>
+            </div>
+            <div class="step" data-step="3">
+                <div class="step-number" id="step3">3</div>
+                <div class="step-title">Education</div>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-number" id="step4">4</div>
+                <div class="step-title">Employment</div>
+            </div>
+            <div class="step" data-step="5">
+                <div class="step-number" id="step5">5</div>
+                <div class="step-title">Skills</div>
+            </div>
+            <div class="step" data-step="6">
+                <div class="step-number" id="step6">6</div>
+                <div class="step-title">Availability</div>
+            </div>
+            <div class="step" data-step="7">
+                <div class="step-number" id="step7">7</div>
+                <div class="step-title">Preferences</div>
+            </div>
+        </div>
+
+        <!-- Registration Form -->
+        <form id="registrationForm">
+            {% csrf_token %}
+            <input type="hidden" name="current_step" id="currentStep" value="1">
+            
+            <div id="formContent">
+                <!-- Step 1: Resume Upload -->
+                <div class="step-content" id="stepContent1">
+                    <h3 class="mb-4">Resume Upload</h3>
+                    <div class="resume-upload" onclick="document.getElementById('resumeFile').click()">
+                        <div class="upload-icon">📄</div>
+                        <h4>Upload your resume</h4>
+                        <p>Click to browse or drag and drop your resume (PDF, DOC, DOCX)</p>
+                        <input type="file" id="resumeFile" name="resume" accept=".pdf,.doc,.docx" style="display: none;">
+                    </div>
+                    <div class="progress-container" id="progressContainer">
+                        <p>Analyzing resume...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p id="progressText">0%</p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Basic Information -->
+                <div class="step-content d-none" id="stepContent2">
+                    <h3 class="mb-4">Basic Information</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="firstName" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="firstName" name="first_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="lastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="lastName" name="last_name" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="your.email@mun.ca" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="(709) 123-4567">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="academicYear" class="form-label">Academic Year</label>
+                            <select class="form-select" id="academicYear" name="academic_year" required>
+                                <option value="">Select year</option>
+                                <option value="freshman">Freshman</option>
+                                <option value="sophomore">Sophomore</option>
+                                <option value="junior">Junior</option>
+                                <option value="senior">Senior</option>
+                                <option value="graduate">Graduate</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="program" class="form-label">Program/Major</label>
+                            <input type="text" class="form-control" id="program" name="program" placeholder="e.g., Computer Science, Engineering, Business" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                            <div class="form-text">Must be at least 8 characters long</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Education History -->
+                <div class="step-content d-none" id="stepContent3">
+                    <h3 class="mb-4">Education History</h3>
+                    <div id="educationContainer">
+                        <div class="education-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Institution</label>
+                                    <input type="text" class="form-control" name="education_institution_0" placeholder="Memorial University of Newfoundland">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Degree/Program</label>
+                                    <input type="text" class="form-control" name="education_degree_0" placeholder="Bachelor of Science">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Field of Study</label>
+                                    <input type="text" class="form-control" name="education_field_0" placeholder="Computer Science">
+                                </div>
+                                <div class="col-md-2 mb-3">
+                                    <label class="form-label">GPA (Optional)</label>
+                                    <input type="number" class="form-control" name="education_gpa_0" step="0.01" min="0" max="4">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" name="education_start_0">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">End Date</label>
+                                    <input type="date" class="form-control" name="education_end_0">
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="education_current_0" id="educationCurrent0">
+                                    <label class="form-check-label" for="educationCurrent0">Currently enrolled</label>
+                                </div>
+                                <button type="button" class="remove-entry" onclick="removeEducation(this)" title="Remove education entry">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" onclick="addEducation()">+ Add Education</button>
+                </div>
+
+                <!-- Step 4: Employment History -->
+                <div class="step-content d-none" id="stepContent4">
+                    <h3 class="mb-4">Employment History</h3>
+                    <div id="employmentContainer">
+                        <div class="employment-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Company/Organization</label>
+                                    <input type="text" class="form-control" name="employment_company_0" placeholder="Company name">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Position Title</label>
+                                    <input type="text" class="form-control" name="employment_position_0" placeholder="Job title">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" name="employment_start_0">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">End Date</label>
+                                    <input type="date" class="form-control" name="employment_end_0">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="employment_description_0" rows="3" placeholder="Describe your responsibilities and achievements..."></textarea>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="employment_current_0" id="employmentCurrent0">
+                                    <label class="form-check-label" for="employmentCurrent0">Currently employed</label>
+                                </div>
+                                <button type="button" class="remove-entry" onclick="removeEmployment(this)" title="Remove employment entry">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" onclick="addEmployment()">+ Add Employment</button>
+                </div>
+
+                <!-- Step 5: Skills & Experience -->
+                <div class="step-content d-none" id="stepContent5">
+                    <h3 class="mb-4">Skills & Experience</h3>
+                    <div id="skillsContainer">
+                        <div class="skill-experience-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Skill Name</label>
+                                    <input type="text" class="form-control" name="skill_name_0" placeholder="e.g., Python, JavaScript, Project Management">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Level</label>
+                                    <select class="form-select" name="skill_level_0">
+                                        <option value="beginner">Beginner</option>
+                                        <option value="intermediate">Intermediate</option>
+                                        <option value="advanced">Advanced</option>
+                                        <option value="expert">Expert</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button type="button" class="remove-entry" onclick="removeSkill(this)" title="Remove skill entry">🗑️</button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Experience Description</label>
+                                <textarea class="form-control" name="skill_description_0" rows="2" placeholder="Describe your experience with this skill..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary mb-3" onclick="addSkill()">+ Add More Skills and Experience</button>
+                    
+                    <!-- AI Analysis Progress -->
+                    <div class="ai-analysis-progress" id="aiAnalysisProgress">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            <span>AI is analyzing your skills...</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="aiProgressBar"></div>
+                        </div>
+                        <small class="text-muted mt-1" id="aiProgressText">Initializing analysis...</small>
+                    </div>
+                </div>
+
+                <!-- Step 6: Availability -->
+                <div class="step-content d-none" id="stepContent6">
+                    <h3 class="mb-4">Availability</h3>
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="weekends" id="weekends">
+                                <label class="form-check-label" for="weekends">Weekends</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="evenings" id="evenings">
+                                <label class="form-check-label" for="evenings">Evenings</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="summer" id="summer">
+                                <label class="form-check-label" for="summer">Summer Break</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="parttime" id="parttime">
+                                <label class="form-check-label" for="parttime">Part-time during semester</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="availability" value="coop" id="coop">
+                                <label class="form-check-label" for="coop">Full-time co-op</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="currentlyAvailable" class="form-label">Currently Available</label>
+                            <select class="form-select" id="currentlyAvailable" name="currently_available">
+                                <option value="">Select status</option>
+                                <option value="yes">Yes, immediately</option>
+                                <option value="no">No, not currently</option>
+                                <option value="limited">Limited availability</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="availableDate" class="form-label">Available as of Date</label>
+                            <input type="date" class="form-control" id="availableDate" name="available_date">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="availabilityNotes" class="form-label">Availability Notes</label>
+                        <textarea class="form-control" id="availabilityNotes" name="availability_notes" rows="3" placeholder="Any additional details about your availability..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Step 7: Work Preferences -->
+                <div class="step-content d-none" id="stepContent7">
+                    <h3 class="mb-4">Work Preferences</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="remotePreference" class="form-label">Remote Work Preference</label>
+                            <select class="form-select" id="remotePreference" name="remote_preference">
+                                <option value="">Select preference</option>
+                                <option value="remote">Fully remote</option>
+                                <option value="hybrid">Hybrid (remote + in-person)</option>
+                                <option value="onsite">On-site only</option>
+                                <option value="flexible">Flexible</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="locationFlexibility" class="form-label">Location Flexibility</label>
+                            <select class="form-select" id="locationFlexibility" name="location_flexibility">
+                                <option value="">Select flexibility</option>
+                                <option value="local">Local area only</option>
+                                <option value="regional">Regional (within province)</option>
+                                <option value="national">National</option>
+                                <option value="international">International</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="careerGoals" class="form-label">Career Goals</label>
+                        <textarea class="form-control" id="careerGoals" name="career_goals" rows="3" placeholder="Describe your career goals and aspirations..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="additionalInfo" class="form-label">Additional Information</label>
+                        <textarea class="form-control" id="additionalInfo" name="additional_info" rows="3" placeholder="Any other information you'd like to share..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-outline-secondary" id="prevBtn" onclick="previousStep()" style="display: none;">← Previous</button>
+                <div class="ms-auto">
+                    <button type="button" class="btn btn-primary" id="nextBtn" onclick="nextStep()">Continue →</button>
+                    <button type="button" class="btn btn-primary d-none" id="submitBtn" onclick="submitForm()">Create Profile</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = 1;
+const totalSteps = 7;
+let educationCount = 1;
+let employmentCount = 1;
+let skillCount = 1;
+
+// Step navigation
+function nextStep() {
+    if (currentStep === 5) {
+        // AI analysis before moving to availability
+        reviewSkillsWithAI();
+        return;
+    }
+    
+    if (currentStep < totalSteps) {
+        // Hide current step
+        document.getElementById(`stepContent${currentStep}`).classList.add('d-none');
+        updateStepIndicator(currentStep, 'completed');
+        
+        // Show next step
+        currentStep++;
+        document.getElementById(`stepContent${currentStep}`).classList.remove('d-none');
+        updateStepIndicator(currentStep, 'active');
+        
+        // Update navigation buttons
+        updateNavigationButtons();
+        
+        // Update hidden field
+        document.getElementById('currentStep').value = currentStep;
+    }
+}
+
+function previousStep() {
+    if (currentStep > 1) {
+        // Hide current step
+        document.getElementById(`stepContent${currentStep}`).classList.add('d-none');
+        updateStepIndicator(currentStep, '');
+        
+        // Show previous step
+        currentStep--;
+        document.getElementById(`stepContent${currentStep}`).classList.remove('d-none');
+        updateStepIndicator(currentStep, 'active');
+        
+        // Update navigation buttons
+        updateNavigationButtons();
+        
+        // Update hidden field
+        document.getElementById('currentStep').value = currentStep;
+    }
+}
+
+function updateStepIndicator(step, status) {
+    const stepNumber = document.getElementById(`step${step}`);
+    const stepTitle = stepNumber.parentElement.querySelector('.step-title');
+    
+    // Reset classes
+    stepNumber.className = 'step-number';
+    stepTitle.className = 'step-title';
+    
+    // Apply new status
+    if (status) {
+        stepNumber.classList.add(status);
+        stepTitle.classList.add(status);
+    }
+}
+
+function updateNavigationButtons() {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Show/hide previous button
+    prevBtn.style.display = currentStep > 1 ? 'block' : 'none';
+    
+    // Show/hide next/submit buttons
+    if (currentStep === totalSteps) {
+        nextBtn.classList.add('d-none');
+        submitBtn.classList.remove('d-none');
+    } else {
+        nextBtn.classList.remove('d-none');
+        submitBtn.classList.add('d-none');
+    }
+}
+
+// AI Skills Review
+function reviewSkillsWithAI() {
+    const nextBtn = document.getElementById('nextBtn');
+    const originalText = nextBtn.textContent;
+    
+    nextBtn.textContent = 'Analyzing...';
+    nextBtn.disabled = true;
+    
+    showAIAnalysisProgress();
+    
+    // Simulate AI analysis with progress
+    let progress = 0;
+    const progressBar = document.getElementById('aiProgressBar');
+    const progressText = document.getElementById('aiProgressText');
+    
+    const stages = [
+        'Analyzing skill combinations...',
+        'Checking market demand...',
+        'Validating experience levels...',
+        'Generating recommendations...',
+        'Finalizing analysis...'
+    ];
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress > 100) progress = 100;
+        
+        progressBar.style.width = progress + '%';
+        const stageIndex = Math.floor((progress / 100) * stages.length);
+        progressText.textContent = stages[Math.min(stageIndex, stages.length - 1)];
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                hideAIAnalysisProgress();
+                generateSkillAnnotations();
+                nextBtn.textContent = 'Continue to Availability →';
+                nextBtn.disabled = false;
+                
+                // Auto-proceed to next step
+                setTimeout(nextStep, 1000);
+            }, 500);
+        }
+    }, 200);
+}
+
+function showAIAnalysisProgress() {
+    document.getElementById('aiAnalysisProgress').style.display = 'block';
+}
+
+function hideAIAnalysisProgress() {
+    document.getElementById('aiAnalysisProgress').style.display = 'none';
+}
+
+function generateSkillAnnotations() {
+    const skillItems = document.querySelectorAll('.skill-experience-item');
+    const sampleAnnotations = [
+        { message: '✓ Great skill combination for web development', type: 'success' },
+        { message: 'Consider adding specific frameworks you\'ve used', type: 'info' },
+        { message: 'High demand skill in current market', type: 'success' },
+        { message: 'Adding portfolio examples would strengthen this', type: 'info' }
+    ];
+    
+    skillItems.forEach((item, index) => {
+        const skillInput = item.querySelector('input[name^="skill_name_"]');
+        if (skillInput && skillInput.value && index < sampleAnnotations.length) {
+            showAnnotation(skillInput, sampleAnnotations[index].message, sampleAnnotations[index].type);
+        }
+    });
+}
+
+// Dynamic form management
+function addEducation() {
+    const container = document.getElementById('educationContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names and IDs
+    const inputs = newItem.querySelectorAll('input');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${educationCount}`);
+        input.name = name;
+        input.value = '';
+        if (input.id) {
+            input.id = input.id.replace(/\d+$/, educationCount);
+        }
+    });
+    
+    // Update checkbox label
+    const checkbox = newItem.querySelector('.form-check-input');
+    const label = newItem.querySelector('.form-check-label');
+    if (checkbox && label) {
+        checkbox.id = `educationCurrent${educationCount}`;
+        label.setAttribute('for', `educationCurrent${educationCount}`);
+    }
+    
+    container.appendChild(newItem);
+    educationCount++;
+}
+
+function removeEducation(button) {
+    const container = document.getElementById('educationContainer');
+    if (container.children.length > 1) {
+        button.closest('.education-item').remove();
+    }
+}
+
+function addEmployment() {
+    const container = document.getElementById('employmentContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names and IDs
+    const inputs = newItem.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${employmentCount}`);
+        input.name = name;
+        input.value = '';
+        if (input.id) {
+            input.id = input.id.replace(/\d+$/, employmentCount);
+        }
+    });
+    
+    // Update checkbox label
+    const checkbox = newItem.querySelector('.form-check-input');
+    const label = newItem.querySelector('.form-check-label');
+    if (checkbox && label) {
+        checkbox.id = `employmentCurrent${employmentCount}`;
+        label.setAttribute('for', `employmentCurrent${employmentCount}`);
+    }
+    
+    container.appendChild(newItem);
+    employmentCount++;
+}
+
+function removeEmployment(button) {
+    const container = document.getElementById('employmentContainer');
+    if (container.children.length > 1) {
+        button.closest('.employment-item').remove();
+    }
+}
+
+function addSkill() {
+    const container = document.getElementById('skillsContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names
+    const inputs = newItem.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${skillCount}`);
+        input.name = name;
+        input.value = '';
+    });
+    
+    container.appendChild(newItem);
+    skillCount++;
+}
+
+function removeSkill(button) {
+    const container = document.getElementById('skillsContainer');
+    if (container.children.length > 1) {
+        button.closest('.skill-experience-item').remove();
+    }
+}
+
+// Resume upload simulation
+document.getElementById('resumeFile').addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+        simulateResumeUpload();
+    }
+});
+
+function simulateResumeUpload() {
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    progressContainer.style.display = 'block';
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 100) progress = 100;
+        
+        progressFill.style.width = progress + '%';
+        progressText.textContent = Math.round(progress) + '%';
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                populateFromResume();
+                progressContainer.style.display = 'none';
+                // Auto-advance to next step
+                setTimeout(nextStep, 1000);
+            }, 500);
+        }
+    }, 200);
+}
+
+function populateFromResume() {
+    // Simulate AI parsing results
+    document.getElementById('firstName').value = 'Sarah';
+    document.getElementById('lastName').value = 'Chen';
+    document.getElementById('email').value = 'sarah.chen@mun.ca';
+    document.getElementById('phone').value = '(709) 123-4567';
+    document.getElementById('academicYear').value = 'junior';
+    document.getElementById('program').value = 'Computer Science';
+    
+    // Don't auto-populate passwords for security reasons
+    // Users must manually set their passwords
+    
+    // Trigger AI analysis for populated fields
+    setTimeout(() => {
+        document.querySelectorAll('input[value], select').forEach(field => {
+            if (field.value) {
+                analyzeField(field);
+            }
+        });
+    }, 500);
+}
+
+// Form submission
+function submitForm() {
+    // Validate passwords match
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        alert('Passwords do not match. Please check your password fields.');
+        return;
+    }
+    
+    if (password.length < 8) {
+        alert('Password must be at least 8 characters long.');
+        return;
+    }
+    
+    const form = document.getElementById('registrationForm');
+    const formData = new FormData(form);
+    
+    // Set final step
+    formData.set('current_step', '7');
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Creating Profile...';
+    submitBtn.disabled = true;
+    
+    fetch('{% url "core:process_student_registration" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Show success message
+            document.getElementById('formContent').innerHTML = `
+                <div class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="display-1 text-success">✅</i>
+                    </div>
+                    <h3 class="text-success mb-3">Profile Created Successfully!</h3>
+                    <p class="mb-4">${data.message}</p>
+                    <div class="spinner-border text-primary me-2" role="status"></div>
+                    <span>Redirecting to your dashboard...</span>
+                </div>
+            `;
+            
+            // Hide navigation buttons
+            document.querySelector('.d-flex.justify-content-between').style.display = 'none';
+            
+            // Redirect after delay
+            setTimeout(() => {
+                window.location.href = data.redirect;
+            }, 2000);
+        } else {
+            alert('Error: ' + data.message);
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while creating your profile. Please try again.');
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateNavigationButtons();
+});
+</script>
+{% endblock %}

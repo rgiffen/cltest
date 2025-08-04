@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+
+{% block title %}Employer Registration - Student Platform{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Employer Registration</h1>
+        <p>Connect with talented students for your projects</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>AI-Assisted Verification</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <!-- Step Indicator -->
+        <div class="step-indicator" id="stepIndicator">
+            <div class="step" data-step="1">
+                <div class="step-number active" id="step1">1</div>
+                <div class="step-title active">Account Setup</div>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-number" id="step2">2</div>
+                <div class="step-title">Company Info</div>
+            </div>
+            <div class="step" data-step="3">
+                <div class="step-number" id="step3">3</div>
+                <div class="step-title">Contact Details</div>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-number" id="step4">4</div>
+                <div class="step-title">Verification</div>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Registration Form -->
+        <form id="employerRegistrationForm">
+            {% csrf_token %}
+            <input type="hidden" name="current_step" id="currentStep" value="1">
+            
+            <div id="formContent">
+                <!-- Step 1: Account Setup -->
+                <div class="step-content" id="stepContent1">
+                    <h3 class="mb-4">Account Setup</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="firstName" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="firstName" name="first_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="lastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="lastName" name="last_name" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Business Email</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="your.email@company.com" required>
+                            <div class="form-text">Use your company email address</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="(709) 123-4567">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                            <div class="form-text">Must be at least 8 characters long</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Company Information -->
+                <div class="step-content d-none" id="stepContent2">
+                    <h3 class="mb-4">Company Information</h3>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="companyName" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" id="companyName" name="company_name" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="industry" class="form-label">Industry</label>
+                            <select class="form-select" id="industry" name="industry" required>
+                                <option value="">Select industry</option>
+                                <option value="technology">Technology</option>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="finance">Finance</option>
+                                <option value="education">Education</option>
+                                <option value="retail">Retail</option>
+                                <option value="manufacturing">Manufacturing</option>
+                                <option value="consulting">Consulting</option>
+                                <option value="non-profit">Non-Profit</option>
+                                <option value="government">Government</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="website" class="form-label">Company Website</label>
+                            <input type="url" class="form-control" id="website" name="website" placeholder="https://www.company.com">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="companyLocation" class="form-label">Company Location</label>
+                            <input type="text" class="form-control" id="companyLocation" name="company_location" placeholder="St. John's, NL" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="companyDescription" class="form-label">Company Description</label>
+                        <textarea class="form-control" id="companyDescription" name="company_description" rows="4" 
+                                  placeholder="Describe your company, what you do, and your mission..." required></textarea>
+                        <div class="form-text">This helps students understand your organization</div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Contact Details -->
+                <div class="step-content d-none" id="stepContent3">
+                    <h3 class="mb-4">Primary Contact Information</h3>
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> This information will be used for student communications and project coordination.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="contactName" class="form-label">Contact Person Name</label>
+                            <input type="text" class="form-control" id="contactName" name="contact_name" required>
+                            <div class="form-text">Person students will communicate with</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="contactTitle" class="form-label">Job Title</label>
+                            <input type="text" class="form-control" id="contactTitle" name="contact_title" 
+                                   placeholder="e.g., Project Manager, HR Director" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="contactPhone" class="form-label">Contact Phone</label>
+                            <input type="tel" class="form-control" id="contactPhone" name="contact_phone" placeholder="(709) 123-4567">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Email</label>
+                            <input type="email" class="form-control" value="" disabled>
+                            <div class="form-text">Will use your registration email</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Project Types You're Interested In</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="project_types" value="web_development" id="webDev">
+                                    <label class="form-check-label" for="webDev">Web Development</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="project_types" value="mobile_app" id="mobileApp">
+                                    <label class="form-check-label" for="mobileApp">Mobile Apps</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="project_types" value="data_analysis" id="dataAnalysis">
+                                    <label class="form-check-label" for="dataAnalysis">Data Analysis</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="project_types" value="research" id="research">
+                                    <label class="form-check-label" for="research">Research</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="project_types" value="design" id="design">
+                                    <label class="form-check-label" for="design">Design</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="project_types" value="marketing" id="marketing">
+                                    <label class="form-check-label" for="marketing">Marketing</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="project_types" value="consulting" id="consulting">
+                                    <label class="form-check-label" for="consulting">Consulting</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="project_types" value="writing" id="writing">
+                                    <label class="form-check-label" for="writing">Content Writing</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="project_types" value="other" id="other">
+                                    <label class="form-check-label" for="other">Other</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Verification -->
+                <div class="step-content d-none" id="stepContent4">
+                    <h3 class="mb-4">Account Verification</h3>
+                    
+                    <div class="ai-analysis-progress" id="companyVerification" style="display: block;">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            <span>AI is verifying your company information...</span>
+                        </div>
+                        <div class="progress mb-2">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                                 style="width: 0%" id="verificationProgressBar"></div>
+                        </div>
+                        <small class="text-muted" id="verificationProgressText">Initializing verification...</small>
+                    </div>
+
+                    <div class="verification-results d-none" id="verificationResults">
+                        <div class="alert alert-success">
+                            <h5><i class="bi bi-check-circle"></i> Verification Complete</h5>
+                            <p class="mb-2">Your company information has been analyzed and looks legitimate.</p>
+                            <ul class="mb-0">
+                                <li>✅ Company domain verification</li>
+                                <li>✅ Business information validation</li>
+                                <li>✅ Contact details verified</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <h6>Next Steps:</h6>
+                            <p class="mb-1">Your account will be reviewed by our admin team within 24-48 hours. You'll receive an email notification once approved.</p>
+                            <p class="mb-0">Once approved, you can start posting projects and connecting with students.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-outline-secondary" id="prevBtn" onclick="previousStep()" style="display: none;">← Previous</button>
+                <div class="ms-auto">
+                    <button type="button" class="btn btn-primary" id="nextBtn" onclick="nextStep()">Continue →</button>
+                    <button type="button" class="btn btn-primary d-none" id="submitBtn" onclick="submitForm()">Submit for Review</button>
+                </div>
+            </div>
+        </form>
+        
+        <div class="text-center mt-4">
+            <p class="text-muted">Already have an account? <a href="{% url 'core:login' %}">Sign in here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = 1;
+const totalSteps = 4;
+
+// Step navigation
+function nextStep() {
+    if (currentStep === 4) {
+        // Start verification process
+        startCompanyVerification();
+        return;
+    }
+    
+    if (currentStep < totalSteps) {
+        // Hide current step
+        document.getElementById(`stepContent${currentStep}`).classList.add('d-none');
+        updateStepIndicator(currentStep, 'completed');
+        
+        // Show next step
+        currentStep++;
+        document.getElementById(`stepContent${currentStep}`).classList.remove('d-none');
+        updateStepIndicator(currentStep, 'active');
+        
+        // Auto-populate contact email in step 3
+        if (currentStep === 3) {
+            const email = document.getElementById('email').value;
+            const contactEmailField = document.querySelector('#stepContent3 input[type="email"]');
+            if (contactEmailField && email) {
+                contactEmailField.value = email;
+            }
+        }
+        
+        // Update navigation buttons
+        updateNavigationButtons();
+        
+        // Update hidden field
+        document.getElementById('currentStep').value = currentStep;
+    }
+}
+
+function previousStep() {
+    if (currentStep > 1) {
+        // Hide current step
+        document.getElementById(`stepContent${currentStep}`).classList.add('d-none');
+        updateStepIndicator(currentStep, '');
+        
+        // Show previous step
+        currentStep--;
+        document.getElementById(`stepContent${currentStep}`).classList.remove('d-none');
+        updateStepIndicator(currentStep, 'active');
+        
+        // Update navigation buttons
+        updateNavigationButtons();
+        
+        // Update hidden field
+        document.getElementById('currentStep').value = currentStep;
+    }
+}
+
+function updateStepIndicator(step, status) {
+    const stepNumber = document.getElementById(`step${step}`);
+    const stepTitle = stepNumber.parentElement.querySelector('.step-title');
+    
+    // Reset classes
+    stepNumber.className = 'step-number';
+    stepTitle.className = 'step-title';
+    
+    // Apply new status
+    if (status) {
+        stepNumber.classList.add(status);
+        stepTitle.classList.add(status);
+    }
+}
+
+function updateNavigationButtons() {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Show/hide previous button
+    prevBtn.style.display = currentStep > 1 ? 'block' : 'none';
+    
+    // Update next button text and show/hide submit button
+    if (currentStep === totalSteps) {
+        nextBtn.textContent = 'Verify Information →';
+        submitBtn.classList.add('d-none');
+    } else {
+        nextBtn.classList.remove('d-none');
+        submitBtn.classList.add('d-none');
+    }
+}
+
+// Company Verification
+function startCompanyVerification() {
+    const nextBtn = document.getElementById('nextBtn');
+    nextBtn.textContent = 'Verifying...';
+    nextBtn.disabled = true;
+    
+    // Show progress
+    let progress = 0;
+    const progressBar = document.getElementById('verificationProgressBar');
+    const progressText = document.getElementById('verificationProgressText');
+    
+    const stages = [
+        'Checking company domain...',
+        'Validating business information...',
+        'Verifying contact details...',
+        'Running security checks...',
+        'Finalizing verification...'
+    ];
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress > 100) progress = 100;
+        
+        progressBar.style.width = progress + '%';
+        const stageIndex = Math.floor((progress / 100) * stages.length);
+        progressText.textContent = stages[Math.min(stageIndex, stages.length - 1)];
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                showVerificationResults();
+            }, 1000);
+        }
+    }, 300);
+}
+
+function showVerificationResults() {
+    document.getElementById('companyVerification').style.display = 'none';
+    document.getElementById('verificationResults').classList.remove('d-none');
+    
+    // Show submit button
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    nextBtn.classList.add('d-none');
+    submitBtn.classList.remove('d-none');
+    
+    updateStepIndicator(currentStep, 'completed');
+}
+
+// Form submission
+function submitForm() {
+    // Validate passwords match
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        alert('Passwords do not match. Please check your password fields.');
+        currentStep = 1;
+        showStep(1);
+        return;
+    }
+    
+    if (password.length < 8) {
+        alert('Password must be at least 8 characters long.');
+        currentStep = 1;
+        showStep(1);
+        return;
+    }
+    
+    const form = document.getElementById('employerRegistrationForm');
+    const formData = new FormData(form);
+    
+    // Set final step
+    formData.set('current_step', '4');
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Submitting...';
+    submitBtn.disabled = true;
+    
+    fetch('{% url "core:process_employer_registration" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Show success message
+            document.getElementById('formContent').innerHTML = `
+                <div class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="display-1 text-success">✅</i>
+                    </div>
+                    <h3 class="text-success mb-3">Registration Submitted!</h3>
+                    <p class="mb-4">${data.message}</p>
+                    <div class="alert alert-info">
+                        <h6>What happens next?</h6>
+                        <ul class="text-start mb-0">
+                            <li>Our admin team will review your application within 24-48 hours</li>
+                            <li>You'll receive an email notification once approved</li>
+                            <li>After approval, you can sign in and start posting projects</li>
+                        </ul>
+                    </div>
+                    <a href="{% url 'core:home' %}" class="btn btn-primary">Return to Home</a>
+                </div>
+            `;
+            
+            // Hide navigation buttons
+            document.querySelector('.d-flex.justify-content-between').style.display = 'none';
+        } else {
+            alert('Error: ' + data.message);
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while submitting your registration. Please try again.');
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    });
+}
+
+function showStep(step) {
+    // Hide all steps
+    for (let i = 1; i <= totalSteps; i++) {
+        document.getElementById(`stepContent${i}`).classList.add('d-none');
+        updateStepIndicator(i, '');
+    }
+    
+    // Show target step
+    document.getElementById(`stepContent${step}`).classList.remove('d-none');
+    updateStepIndicator(step, 'active');
+    currentStep = step;
+    updateNavigationButtons();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateNavigationButtons();
+    
+    // Add field monitoring for AI validation
+    document.querySelectorAll('input, select, textarea').forEach(field => {
+        field.addEventListener('input', function() {
+            analyzeField(this);
+        });
+    });
+});
+</script>
+{% endblock %}

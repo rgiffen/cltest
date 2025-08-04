@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Choose Registration Type - Student Platform{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Join Student Platform</h1>
+        <p>Choose your role to get started</p>
+    </div>
+
+    <div class="form-container">
+        <div class="row justify-content-center">
+            <div class="col-md-5 mb-4">
+                <div class="card text-center h-100 border-primary">
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-3">
+                            <i class="display-1">👨‍🎓</i>
+                        </div>
+                        <h4 class="card-title">I'm a Student</h4>
+                        <p class="card-text flex-grow-1">
+                            Create your profile, showcase your skills, and get matched with exciting project opportunities.
+                        </p>
+                        <ul class="list-unstyled text-start mb-4">
+                            <li>✓ Upload resume with AI parsing</li>
+                            <li>✓ Skill validation and suggestions</li>
+                            <li>✓ Smart project matching</li>
+                            <li>✓ Availability management</li>
+                        </ul>
+                        <a href="{% url 'core:student_register' %}" class="btn btn-primary btn-lg">Register as Student</a>
+                        <small class="text-muted mt-2">Requires @mun.ca email address</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-5 mb-4">
+                <div class="card text-center h-100 border-secondary">
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-3">
+                            <i class="display-1">🏢</i>
+                        </div>
+                        <h4 class="card-title">I'm an Employer</h4>
+                        <p class="card-text flex-grow-1">
+                            Post projects and find talented students who match your specific requirements.
+                        </p>
+                        <ul class="list-unstyled text-start mb-4">
+                            <li>✓ AI-powered candidate matching</li>
+                            <li>✓ Skill and experience filtering</li>
+                            <li>✓ Project management tools</li>
+                            <li>✓ Admin-approved accounts</li>
+                        </ul>
+                        <a href="{% url 'core:employer_register' %}" class="btn btn-secondary btn-lg">Register as Employer</a>
+                        <small class="text-muted mt-2">Subject to admin approval</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-muted">Already have an account? <a href="{% url 'core:login' %}">Sign in here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

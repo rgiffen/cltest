@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard - {{ user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Welcome, {{ user.get_full_name }}!</h1>
+        <p>{{ profile.program }} - {{ profile.get_academic_year_display }}</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>Profile Complete</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Profile Summary</h5>
+                        <span class="badge bg-success">✓ Complete</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-3"><strong>Email:</strong></div>
+                            <div class="col-sm-9">{{ user.email }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-3"><strong>Phone:</strong></div>
+                            <div class="col-sm-9">{{ profile.phone|default:"Not provided" }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-3"><strong>Program:</strong></div>
+                            <div class="col-sm-9">{{ profile.program }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-3"><strong>Academic Year:</strong></div>
+                            <div class="col-sm-9">{{ profile.get_academic_year_display }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-3"><strong>University:</strong></div>
+                            <div class="col-sm-9">{{ profile.university }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Skills ({{ profile.skills.count }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if profile.skills.exists %}
+                            <div class="row">
+                                {% for skill in profile.skills.all %}
+                                <div class="col-md-6 mb-2">
+                                    <span class="badge bg-primary me-1">{{ skill.name }}</span>
+                                    <small class="text-muted">({{ skill.get_level_display }})</small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No skills added yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Education ({{ profile.education.count }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if profile.education.exists %}
+                            {% for edu in profile.education.all %}
+                            <div class="mb-3">
+                                <h6 class="mb-1">{{ edu.degree }} in {{ edu.field_of_study }}</h6>
+                                <p class="mb-1"><strong>{{ edu.institution }}</strong></p>
+                                <small class="text-muted">
+                                    {{ edu.start_date|date:"Y" }} - 
+                                    {% if edu.is_current %}Present{% else %}{{ edu.end_date|date:"Y" }}{% endif %}
+                                    {% if edu.gpa %} | GPA: {{ edu.gpa }}{% endif %}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No education history added yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Employment ({{ profile.employment.count }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if profile.employment.exists %}
+                            {% for emp in profile.employment.all %}
+                            <div class="mb-3">
+                                <h6 class="mb-1">{{ emp.position }}</h6>
+                                <p class="mb-1"><strong>{{ emp.company }}</strong></p>
+                                <small class="text-muted">
+                                    {{ emp.start_date|date:"M Y" }} - 
+                                    {% if emp.is_current %}Present{% else %}{{ emp.end_date|date:"M Y" }}{% endif %}
+                                </small>
+                                {% if emp.description %}
+                                <p class="mt-1 small">{{ emp.description|truncatewords:20 }}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No employment history added yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Availability Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>Current Status:</strong>
+                            <span class="badge bg-{% if profile.currently_available == 'yes' %}success{% elif profile.currently_available == 'no' %}danger{% else %}warning{% endif %}">
+                                {{ profile.get_currently_available_display|default:"Not specified" }}
+                            </span>
+                        </div>
+                        
+                        {% if profile.available_date %}
+                        <div class="mb-2">
+                            <strong>Available from:</strong> {{ profile.available_date|date:"M d, Y" }}
+                        </div>
+                        {% endif %}
+
+                        {% if profile.availability %}
+                        <div class="mb-2">
+                            <strong>Available for:</strong>
+                            <ul class="list-unstyled mt-1">
+                                {% for avail in profile.availability %}
+                                <li><small>• {{ avail|capfirst }}</small></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        {% if profile.availability_notes %}
+                        <div class="mb-2">
+                            <strong>Notes:</strong>
+                            <p class="small text-muted">{{ profile.availability_notes|truncatewords:15 }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Work Preferences</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if profile.remote_preference %}
+                        <div class="mb-2">
+                            <strong>Remote Work:</strong> {{ profile.get_remote_preference_display }}
+                        </div>
+                        {% endif %}
+                        
+                        {% if profile.location_flexibility %}
+                        <div class="mb-2">
+                            <strong>Location:</strong> {{ profile.get_location_flexibility_display }}
+                        </div>
+                        {% endif %}
+                        
+                        {% if profile.career_goals %}
+                        <div class="mb-2">
+                            <strong>Career Goals:</strong>
+                            <p class="small text-muted">{{ profile.career_goals|truncatewords:20 }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'core:student_profile' %}" class="btn btn-outline-primary btn-sm">Edit Profile</a>
+                            <a href="{% url 'core:browse_projects' %}" class="btn btn-outline-secondary btn-sm">Browse Projects</a>
+                            <button class="btn btn-outline-info btn-sm" disabled>View Applications</button>
+                            <a href="{% url 'core:logout' %}" class="btn btn-outline-danger btn-sm">Logout</a>
+                        </div>
+                        <small class="text-muted mt-2 d-block">Application tracking coming soon!</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

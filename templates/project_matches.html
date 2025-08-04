@@ -1,0 +1,419 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Matches - {{ project.title }}{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Student Matches</h1>
+        <p>{{ project.title }} - {{ project.employer.company_name }}</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>AI-Powered Matching</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <!-- Project Summary -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Project Overview</h5>
+                <span class="badge bg-primary">{{ matches|length }} Match{{ matches|length|pluralize:"es" }}</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <p class="mb-2">{{ project.description|truncatewords:30 }}</p>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <small><strong>Type:</strong> {{ project.get_project_type_display }}</small><br>
+                                <small><strong>Duration:</strong> {{ project.get_duration_display }}</small>
+                            </div>
+                            <div class="col-sm-6">
+                                <small><strong>Work Style:</strong> {{ project.get_work_type_display }}</small><br>
+                                <small><strong>Min Level:</strong> {{ project.get_min_academic_year_display|default:"Any" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Required Skills:</h6>
+                        {% for skill in project.required_skills %}
+                            <span class="badge bg-danger me-1">{{ skill }}</span>
+                        {% empty %}
+                            <span class="text-muted">None specified</span>
+                        {% endfor %}
+                        
+                        {% if project.preferred_skills %}
+                        <h6 class="mt-2">Preferred Skills:</h6>
+                        {% for skill in project.preferred_skills %}
+                            <span class="badge bg-info me-1">{{ skill }}</span>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Matching Progress (shown initially) -->
+        <div class="ai-analysis-progress mb-4" id="matchingProgress" style="display: none;">
+            <div class="d-flex align-items-center mb-2">
+                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                <span>AI is analyzing student matches...</span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                     style="width: 0%" id="matchingProgressBar"></div>
+            </div>
+            <small class="text-muted" id="matchingProgressText">Scanning student database...</small>
+        </div>
+
+        <!-- Student Matches -->
+        <div id="matchesContainer">
+            {% if matches %}
+                <div class="row">
+                    <div class="col-md-8">
+                        {% for student, match_data in matches %}
+                        <div class="card mb-3 student-match" data-score="{{ match_data.score }}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h5 class="card-title mb-1">
+                                            {{ student.user.get_full_name }}
+                                            <small class="text-muted">({{ student.get_academic_year_display }})</small>
+                                        </h5>
+                                        <p class="text-muted mb-2">{{ student.program }} - {{ student.university }}</p>
+                                        
+                                        <!-- Match Score Breakdown -->
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <div class="progress mb-1" style="height: 8px;">
+                                                    <div class="progress-bar bg-primary" role="progressbar" 
+                                                         style="width: {{ match_data.skills_match }}%"></div>
+                                                </div>
+                                                <small>Skills Match: {{ match_data.skills_match|floatformat:0 }}%</small>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <div class="progress mb-1" style="height: 8px;">
+                                                    <div class="progress-bar bg-success" role="progressbar" 
+                                                         style="width: {{ match_data.availability_match }}%"></div>
+                                                </div>
+                                                <small>Availability: {{ match_data.availability_match|floatformat:0 }}%</small>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Student Skills -->
+                                        <div class="mb-2">
+                                            <strong>Skills:</strong>
+                                            {% for skill in student.skills.all|slice:":6" %}
+                                                <span class="badge bg-outline-primary me-1">{{ skill.name }}</span>
+                                            {% endfor %}
+                                            {% if student.skills.count > 6 %}
+                                                <small class="text-muted">+{{ student.skills.count|add:"-6" }} more</small>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Availability Info -->
+                                        <div class="mb-2">
+                                            <strong>Availability:</strong>
+                                            <span class="badge bg-{% if student.currently_available == 'yes' %}success{% elif student.currently_available == 'limited' %}warning{% else %}secondary{% endif %}">
+                                                {{ student.get_currently_available_display|default:"Not specified" }}
+                                            </span>
+                                            {% if student.remote_preference %}
+                                                <span class="badge bg-info">{{ student.get_remote_preference_display }}</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Match Evidence -->
+                                        {% if match_data.evidence %}
+                                        <div class="mb-2">
+                                            <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" 
+                                                    data-bs-target="#evidence{{ forloop.counter }}" aria-expanded="false">
+                                                View Match Details
+                                            </button>
+                                            <div class="collapse mt-2" id="evidence{{ forloop.counter }}">
+                                                <div class="alert alert-light small">
+                                                    <strong>Why this student matches:</strong>
+                                                    <ul class="mb-0 mt-1">
+                                                        {% for evidence in match_data.evidence %}
+                                                        <li>{{ evidence }}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                    {% if match_data.missing_skills %}
+                                                    <hr class="my-2">
+                                                    <strong>Missing required skills:</strong>
+                                                    {% for skill in match_data.missing_skills %}
+                                                        <span class="badge bg-warning text-dark me-1">{{ skill }}</span>
+                                                    {% endfor %}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="ms-3 text-center">
+                                        <div class="match-score mb-2">
+                                            <div class="display-6 fw-bold text-{% if match_data.score >= 80 %}success{% elif match_data.score >= 60 %}warning{% else %}secondary{% endif %}">
+                                                {{ match_data.score|floatformat:0 }}%
+                                            </div>
+                                            <small class="text-muted">Match</small>
+                                        </div>
+                                        <div class="btn-group-vertical btn-group-sm" role="group">
+                                            <button class="btn btn-outline-primary" onclick="contactStudent('{{ student.user.email }}', '{{ student.user.get_full_name }}')">
+                                                Contact
+                                            </button>
+                                            <button class="btn btn-outline-info" onclick="viewProfile({{ student.id }})">
+                                                View Profile
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Sidebar with Filtering -->
+                    <div class="col-md-4">
+                        <div class="card sticky-top">
+                            <div class="card-header">
+                                <h5 class="mb-0">Filter Matches</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Minimum Match Score</label>
+                                    <input type="range" class="form-range" id="scoreFilter" min="0" max="100" value="0" 
+                                           onchange="filterByScore(this.value)">
+                                    <div class="d-flex justify-content-between">
+                                        <small>0%</small>
+                                        <small id="scoreValue">0%</small>
+                                        <small>100%</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Academic Level</label>
+                                    <select class="form-select form-select-sm" id="academicFilter" onchange="filterByAcademic()">
+                                        <option value="">All Levels</option>
+                                        <option value="freshman">Freshman+</option>
+                                        <option value="sophomore">Sophomore+</option>
+                                        <option value="junior">Junior+</option>
+                                        <option value="senior">Senior+</option>
+                                        <option value="graduate">Graduate Only</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Availability</label>
+                                    <select class="form-select form-select-sm" id="availabilityFilter" onchange="filterByAvailability()">
+                                        <option value="">All Students</option>
+                                        <option value="yes">Currently Available</option>
+                                        <option value="limited">Limited Availability</option>
+                                    </select>
+                                </div>
+                                
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilters()">
+                                    Reset Filters
+                                </button>
+                                
+                                <hr>
+                                
+                                <div class="text-center">
+                                    <h6>Match Summary</h6>
+                                    <div class="row text-center">
+                                        <div class="col">
+                                            <div class="h5 mb-0 text-success" id="highMatches">0</div>
+                                            <small>High (80%+)</small>
+                                        </div>
+                                        <div class="col">
+                                            <div class="h5 mb-0 text-warning" id="mediumMatches">0</div>
+                                            <small>Medium (60-79%)</small>
+                                        </div>
+                                        <div class="col">
+                                            <div class="h5 mb-0 text-secondary" id="lowMatches">0</div>
+                                            <small>Low (<60%)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="display-1 mb-3">🔍</div>
+                    <h3>No Matches Found</h3>
+                    <p class="text-muted mb-4">No students currently match the requirements for this project.</p>
+                    <div class="alert alert-info">
+                        <h6>Suggestions to improve matches:</h6>
+                        <ul class="text-start mb-0">
+                            <li>Consider making some required skills "preferred" instead</li>
+                            <li>Lower the minimum academic year requirement</li>
+                            <li>Broaden the project description to include related skills</li>
+                            <li>Check back later as new students register</li>
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="mt-4 text-center">
+            <a href="{% url 'core:employer_dashboard' %}" class="btn btn-outline-secondary">← Back to Dashboard</a>
+            {% if matches %}
+            <button class="btn btn-primary ms-2" onclick="refreshMatches()">Refresh Matches</button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Contact Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Contact Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Ready to reach out to <strong id="studentName"></strong>?</p>
+                <p>Email: <strong id="studentEmail"></strong></p>
+                <div class="alert alert-info">
+                    <small><strong>Note:</strong> In a full implementation, this would integrate with an internal messaging system or send a notification to the student.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="sendContact()">Send Message</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allMatches = [];
+
+// Initialize match summary on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateMatchSummary();
+    
+    // Show loading if we're refreshing matches
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('refresh') === 'true') {
+        showMatchingProgress();
+    }
+});
+
+function updateMatchSummary() {
+    const matches = document.querySelectorAll('.student-match:not(.d-none)');
+    let high = 0, medium = 0, low = 0;
+    
+    matches.forEach(match => {
+        const score = parseFloat(match.dataset.score);
+        if (score >= 80) high++;
+        else if (score >= 60) medium++;
+        else low++;
+    });
+    
+    document.getElementById('highMatches').textContent = high;
+    document.getElementById('mediumMatches').textContent = medium;
+    document.getElementById('lowMatches').textContent = low;
+}
+
+function filterByScore(minScore) {
+    document.getElementById('scoreValue').textContent = minScore + '%';
+    
+    const matches = document.querySelectorAll('.student-match');
+    matches.forEach(match => {
+        const score = parseFloat(match.dataset.score);
+        if (score >= minScore) {
+            match.classList.remove('d-none');
+        } else {
+            match.classList.add('d-none');
+        }
+    });
+    
+    updateMatchSummary();
+}
+
+function filterByAcademic() {
+    // Implementation would filter by academic level
+    console.log('Academic filter not fully implemented in demo');
+}
+
+function filterByAvailability() {
+    // Implementation would filter by availability
+    console.log('Availability filter not fully implemented in demo');
+}
+
+function resetFilters() {
+    document.getElementById('scoreFilter').value = 0;
+    document.getElementById('scoreValue').textContent = '0%';
+    document.getElementById('academicFilter').value = '';
+    document.getElementById('availabilityFilter').value = '';
+    
+    document.querySelectorAll('.student-match').forEach(match => {
+        match.classList.remove('d-none');
+    });
+    
+    updateMatchSummary();
+}
+
+function contactStudent(email, name) {
+    document.getElementById('studentName').textContent = name;
+    document.getElementById('studentEmail').textContent = email;
+    
+    const modal = new bootstrap.Modal(document.getElementById('contactModal'));
+    modal.show();
+}
+
+function sendContact() {
+    alert('In a full implementation, this would send a message to the student or create a connection request.');
+    bootstrap.Modal.getInstance(document.getElementById('contactModal')).hide();
+}
+
+function viewProfile(studentId) {
+    alert(`In a full implementation, this would show the detailed profile for student ID: ${studentId}`);
+}
+
+function refreshMatches() {
+    window.location.href = window.location.pathname + '?refresh=true';
+}
+
+function showMatchingProgress() {
+    document.getElementById('matchingProgress').style.display = 'block';
+    document.getElementById('matchesContainer').style.display = 'none';
+    
+    let progress = 0;
+    const progressBar = document.getElementById('matchingProgressBar');
+    const progressText = document.getElementById('matchingProgressText');
+    
+    const stages = [
+        'Scanning student database...',
+        'Analyzing skill compatibility...',
+        'Checking availability matches...',
+        'Calculating match scores...',
+        'Ranking results...'
+    ];
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 100) progress = 100;
+        
+        progressBar.style.width = progress + '%';
+        const stageIndex = Math.floor((progress / 100) * stages.length);
+        progressText.textContent = stages[Math.min(stageIndex, stages.length - 1)];
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                document.getElementById('matchingProgress').style.display = 'none';
+                document.getElementById('matchesContainer').style.display = 'block';
+                updateMatchSummary();
+            }, 500);
+        }
+    }, 200);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome - Student Platform{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Welcome to Student Platform</h1>
+        <p>Connect students with exciting project opportunities</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>AI-Powered Matching</span>
+        </div>
+    </div>
+
+    <div class="form-container">
+        {% if show_admin_link %}
+        <div class="alert alert-info text-center mb-4">
+            Welcome back, {{ user.get_full_name }}! 
+            <a href="/admin/" class="btn btn-sm btn-primary ms-2">Go to Admin Panel</a>
+            <a href="{% url 'core:logout' %}" class="btn btn-sm btn-outline-secondary ms-2">Logout</a>
+        </div>
+        {% endif %}
+        
+        <div class="row justify-content-center">
+            <div class="col-md-5 mb-4">
+                <div class="card text-center h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-3">
+                            <i class="display-1">🔑</i>
+                        </div>
+                        <h4 class="card-title">Sign In</h4>
+                        <p class="card-text flex-grow-1">
+                            Already have an account? Sign in to access your dashboard and manage your profile.
+                        </p>
+                        <a href="{% url 'core:login' %}" class="btn btn-primary btn-lg">Sign In</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-5 mb-4">
+                <div class="card text-center h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-3">
+                            <i class="display-1">👋</i>
+                        </div>
+                        <h4 class="card-title">Create Account</h4>
+                        <p class="card-text flex-grow-1">
+                            New to the platform? Create your account and build your profile to get started.
+                        </p>
+                        <a href="{% url 'core:register' %}" class="btn btn-outline-primary btn-lg">Create Account</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <h5 class="text-center mb-4">How it works</h5>
+            <div class="row text-start">
+                <div class="col-md-4">
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">1</div>
+                        </div>
+                        <div>
+                            <h6>Create Profile</h6>
+                            <small class="text-muted">Upload resume, add skills, set availability</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">2</div>
+                        </div>
+                        <div>
+                            <h6>AI Matching</h6>
+                            <small class="text-muted">Our AI analyzes skills and matches you with relevant projects</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">3</div>
+                        </div>
+                        <div>
+                            <h6>Connect & Work</h6>
+                            <small class="text-muted">Get connected with employers and start working on exciting projects</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

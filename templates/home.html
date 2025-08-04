@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Platform - Connect with Opportunities{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1>Student Platform</h1>
+        <p>Connect students with exciting project opportunities</p>
+        <div class="ai-status">
+            <div class="ai-indicator"></div>
+            <span>AI-Powered Matching</span>
+        </div>
+    </div>
+
+    <div class="form-container text-center">
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">👨‍🎓 Students</h5>
+                        <p class="card-text flex-grow-1">Create your profile, showcase your skills, and get matched with exciting projects from local employers.</p>
+                        <a href="{% url 'core:student_register' %}" class="btn btn-primary">Create Student Profile</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">🏢 Employers</h5>
+                        <p class="card-text flex-grow-1">Post your projects and find talented students who match your requirements perfectly.</p>
+                        <a href="{% url 'core:employer_register' %}" class="btn btn-primary">Register as Employer</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <h4>How it works</h4>
+            <div class="row text-start">
+                <div class="col-md-4">
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">1</div>
+                        </div>
+                        <div>
+                            <h6>Create Profile</h6>
+                            <small class="text-muted">Upload resume, add skills, set availability</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">2</div>
+                        </div>
+                        <div>
+                            <h6>AI Matching</h6>
+                            <small class="text-muted">Our AI analyzes skills and matches you with relevant projects</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">3</div>
+                        </div>
+                        <div>
+                            <h6>Connect & Work</h6>
+                            <small class="text-muted">Get connected with employers and start working on exciting projects</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center">
+            <p class="text-muted">Already have an account? <a href="{% url 'core:login' %}">Sign in here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
