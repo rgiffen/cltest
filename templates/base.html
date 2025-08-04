@@ -42,30 +42,62 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, var(--mun-main) 0%, var(--mun-navy) 100%);
             min-height: 100vh;
+            padding-top: 0;
+        }
+
+        /* Navigation Styles */
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 0.75rem 0;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            text-decoration: none !important;
+        }
+
+        .navbar-nav .nav-link {
+            color: var(--mun-grey-10) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: 6px;
+            margin: 0 0.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: var(--mun-main) !important;
+            background-color: rgba(146, 39, 36, 0.1);
+        }
+
+        .dropdown-menu {
+            border: 1px solid var(--mun-warm-grey-6);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(146, 39, 36, 0.1);
+            color: var(--mun-main);
         }
 
         .main-container {
             max-width: 800px;
-            margin: 0 auto;
+            margin: 20px auto;
             background: var(--mun-white);
             border-radius: 12px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
             overflow: hidden;
-            margin-top: 20px;
-            margin-bottom: 20px;
             border: 1px solid var(--mun-warm-grey-6);
         }
 
         /* Wider container for multi-step forms */
         .registration-container {
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 20px auto;
             background: var(--mun-white);
             border-radius: 12px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
             overflow: hidden;
-            margin-top: 20px;
-            margin-bottom: 20px;
             border: 1px solid var(--mun-warm-grey-6);
         }
 
@@ -481,6 +513,71 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{% url 'core:home' %}">
+                <span style="color: var(--mun-main);">Suitable</span><span style="color: var(--mun-navy);">Skills</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                        {% if user.user_type == 'student' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:student_dashboard' %}">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:browse_projects' %}">Browse Projects</a>
+                            </li>
+                        {% elif user.user_type == 'employer' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:employer_dashboard' %}">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:create_project' %}">Post Project</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% if user.is_staff %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:admin_dashboard' %}">Admin</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                {{ user.get_full_name|default:user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user.user_type == 'student' %}
+                                    <li><a class="dropdown-item" href="{% url 'core:student_profile' %}">My Profile</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'core:logout' %}">Logout</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:login' %}">Sign In</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-primary px-3 ms-2" href="{% url 'core:register' %}">Get Started</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
     {% block content %}{% endblock %}
     
     <!-- Bootstrap 5 JS -->
