@@ -31,7 +31,8 @@ def home(request):
                 request.user.student_profile
                 return redirect('core:student_dashboard')
             except StudentProfile.DoesNotExist:
-                return redirect('core:student_register')
+                # User exists but needs to complete profile - redirect to profile setup
+                return redirect('core:student_profile_setup')
         elif request.user.user_type == 'employer':
             return redirect('core:employer_dashboard')
     
@@ -349,7 +350,6 @@ def login_view(request):
                 
                 if auth_user:
                     login(request, auth_user)
-                    messages.success(request, f'Welcome back, {auth_user.get_full_name()}!')
                     
                     # Redirect based on user type
                     if auth_user.user_type == 'student':
@@ -369,9 +369,7 @@ def login_view(request):
 
 def logout_view(request):
     if request.user.is_authenticated:
-        name = request.user.get_full_name()
         logout(request)
-        messages.success(request, f'Successfully signed out. See you later, {name}!')
     
     return redirect('core:home')
 

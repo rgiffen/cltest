@@ -387,3 +387,38 @@ Sarah Johnson - Strong Match
 - Monitoring and logging setup
 
 Create a fully functional, production-ready application following Django best practices, with comprehensive error handling, logging, and documentation.
+
+
+
+UNIVERSITY COLOR PALETTE
+============================================================
+
+MAIN COLOR
+----------------------------------------
+  ████   Pantone 202          RGB(146,  39,  36)  #922724
+
+
+PRIMARY PALETTE:
+----------------------------------------
+  ████   COOL GREY 7          RGB(153, 153, 153)  #999999
+  ████   COOL GREY 10         RGB( 99, 102, 106)  #63666a
+  ████   WARM GREY 6          RGB(169, 160, 149)  #a9a095
+  ████   WARM GREY 8          RGB(147, 135, 123)  #93877b
+  ████   BLACK                RGB(  0,   0,   0)  #000000
+  ████   WHITE                RGB(255, 255, 255)  #ffffff
+
+
+SECONDARY PALETTE:
+----------------------------------------
+  ████   RHODAMINE RED        RGB(233,  30, 132)  #e91e84
+  ████   PURPLE               RGB(102,  45, 145)  #662d91
+  ████   Pantone 3275         RGB(  0, 166, 156)  #00a69c
+  ████   YELLOW               RGB(255, 242,   0)  #fff200
+  ████   Pantone 185          RGB(237,  41,  57)  #ed2939
+  ████   Pantone 3125         RGB(  0, 160, 176)  #00a0b0
+  ████   Pantone 2727         RGB(  0, 123, 191)  #007bbf
+  ████   Pantone 396          RGB(181, 189,   0)  #b5bd00
+  ████   Pantone 1235         RGB(255, 184,  28)  #ffb81c
+  ████   Pantone 368          RGB(105, 190,  40)  #69be28
+  ████   Pantone 2736         RGB(  0,  56, 147)  #003893
+  ████   ORANGE 021           RGB(255,  88,   0)  #ff5800
