@@ -25,4 +25,5 @@ urlpatterns = [
     path('content/analyze-project/', views.analyze_project, name='analyze_project'),
     path('content/generate-questions/', views.generate_questions, name='generate_questions'),
     path('content/validate-responses/', views.validate_responses, name='validate_responses'),
+    path('content/scan-webpage/', views.scan_webpage, name='scan_webpage'),
 ]

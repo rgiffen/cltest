@@ -44,6 +44,10 @@
                 <div class="step-number" id="step7">7</div>
                 <div class="step-title">Preferences</div>
             </div>
+            <div class="step" data-step="8">
+                <div class="step-number" id="step8">8</div>
+                <div class="step-title">Documents & Links</div>
+            </div>
         </div>
 
         <!-- Registration Form -->
@@ -52,22 +56,66 @@
             <input type="hidden" name="current_step" id="currentStep" value="1">
             
             <div id="formContent">
-                <!-- Step 1: Resume Upload -->
+                <!-- Step 1: Resume Upload & Profile Import -->
                 <div class="step-content" id="stepContent1">
-                    <h3 class="mb-4">Resume Upload <span class="text-muted">(Optional)</span></h3>
-                    <div class="resume-upload" onclick="document.getElementById('resumeFile').click()">
-                        <div class="upload-icon">📄</div>
-                        <h4>Upload your resume <small class="text-muted">(Optional)</small></h4>
-                        <p>Click to browse or drag and drop your resume (PDF, DOC, DOCX, TXT, MD, HTML)</p>
-                        <small class="text-muted">You can skip this step and fill out your profile manually</small></p>
-                        <input type="file" id="resumeFile" accept=".pdf,.doc,.docx,.txt,.md,.html" style="display: none;">
-                    </div>
-                    <div class="progress-container" id="progressContainer">
-                        <p>Analyzing resume...</p>
-                        <div class="progress">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="progressFill"></div>
+                    <h3 class="mb-4">Speed Up Your Profile <span class="text-muted">(Optional)</span></h3>
+                    <p class="text-muted mb-4">Import information from your resume or online profiles to pre-fill your registration. Both options are optional and independent.</p>
+                    
+                    <!-- Resume Upload Section -->
+                    <div class="mb-4">
+                        <div class="resume-upload" onclick="document.getElementById('resumeFile').click()">
+                            <div class="upload-icon">📄</div>
+                            <h4>Upload Resume <small class="text-muted">(Optional)</small></h4>
+                            <p>Click to browse or drag and drop your resume (PDF, DOC, DOCX, TXT, MD, HTML)</p>
+                            <small class="text-muted">Upload your resume to auto-fill education, employment, and skills</small>
+                            <input type="file" id="resumeFile" accept=".pdf,.doc,.docx,.txt,.md,.html" style="display: none;">
                         </div>
-                        <p id="progressText">0%</p>
+                        <div class="progress-container" id="resumeProgressContainer">
+                            <p>Analyzing resume...</p>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="resumeProgressFill"></div>
+                            </div>
+                            <p id="resumeProgressText">0%</p>
+                        </div>
+                        <div id="resumeSuccess" class="alert alert-success mt-2" style="display: none;">
+                            ✅ Resume uploaded successfully! Information has been extracted and will be pre-filled in the following steps.
+                        </div>
+                    </div>
+                    
+                    <!-- Webpage/Profile Scan Section -->
+                    <div class="mb-4">
+                        <div class="resume-upload">
+                            <div class="upload-icon">🌐</div>
+                            <h4>Import from Online Profile <small class="text-muted">(Optional)</small></h4>
+                            <p>Scan your LinkedIn, GitHub, or portfolio website to import profile information</p>
+                            <div class="mt-3">
+                                <label for="profileWebpageUrl" class="form-label">Profile URL</label>
+                                <div class="input-group">
+                                    <input type="url" class="form-control" id="profileWebpageUrl" name="profile_webpage_url" 
+                                           placeholder="https://linkedin.com/in/yourname or https://github.com/username">
+                                    <button type="button" class="btn btn-primary" onclick="scanStudentWebpage()">
+                                        <i class="bi bi-search"></i> Import Profile
+                                    </button>
+                                </div>
+                                <div class="form-text">Try: "https://linkedin.com/in/sarah-chen", "https://github.com/developer", or "https://myportfolio.com"</div>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-container" id="webpageProfileProgressContainer">
+                            <p>Scanning profile and extracting information...</p>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="webpageProfileProgressFill"></div>
+                            </div>
+                            <p id="webpageProfileProgressText">0%</p>
+                        </div>
+                        <div id="webpageSuccess" class="alert alert-success mt-2" style="display: none;">
+                            ✅ Profile imported successfully! Information has been extracted and will be pre-filled in the following steps.
+                        </div>
+                    </div>
+                    
+                    <!-- Continue Button -->
+                    <div class="text-center">
+                        <p class="text-muted mb-3">You can also skip both options and fill out your profile manually</p>
                     </div>
                 </div>
 
@@ -336,6 +384,93 @@
                         <label for="additionalInfo" class="form-label">Additional Information</label>
                         <textarea class="form-control" id="additionalInfo" name="additional_info" rows="3" placeholder="Any other information you'd like to share..."></textarea>
                     </div>
+                    
+                </div>
+
+                <!-- Step 8: Documents & Links -->
+                <div class="step-content d-none" id="stepContent8">
+                    <h3 class="mb-4">Documents & Links</h3>
+                    <p class="text-muted mb-4">Add supporting documents and external links to showcase your background and work.</p>
+                    
+                    <!-- Documents Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">📄 Documents</h5>
+                        <div id="documentsContainer">
+                            <div class="document-item border rounded p-3 mb-3">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Document Type</label>
+                                        <select class="form-select" name="document_type_0">
+                                            <option value="">Select type</option>
+                                            <option value="resume">Resume/CV</option>
+                                            <option value="transcript">Transcript</option>
+                                            <option value="portfolio">Portfolio</option>
+                                            <option value="certificate">Certificate</option>
+                                            <option value="reference">Reference Letter</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Document Title</label>
+                                        <input type="text" class="form-control" name="document_title_0" placeholder="e.g., My Resume 2024">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Upload File</label>
+                                        <input type="file" class="form-control" name="document_file_0" accept=".pdf,.doc,.docx,.txt,.md,.html">
+                                    </div>
+                                    <div class="col-md-1 d-flex align-items-end justify-content-center pb-3">
+                                        <button type="button" class="remove-entry" onclick="removeDocument(this)" title="Remove document"><i class="bi bi-trash3"></i></button>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                                    <textarea class="form-control" name="document_description_0" rows="2" placeholder="Brief description of this document..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary" onclick="addDocument()">+ Add Document</button>
+                    </div>
+
+                    <!-- External Links Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">🔗 External Links & Profiles</h5>
+                        <div id="linksContainer">
+                            <div class="link-item border rounded p-3 mb-3">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Link Type</label>
+                                        <select class="form-select" name="link_type_0">
+                                            <option value="">Select type</option>
+                                            <option value="linkedin">LinkedIn Profile</option>
+                                            <option value="github">GitHub Profile</option>
+                                            <option value="portfolio">Portfolio Website</option>
+                                            <option value="blog">Blog/Personal Site</option>
+                                            <option value="behance">Behance Portfolio</option>
+                                            <option value="dribbble">Dribbble Portfolio</option>
+                                            <option value="twitter">Twitter/X Profile</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Link Title</label>
+                                        <input type="text" class="form-control" name="link_title_0" placeholder="e.g., My LinkedIn Profile">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">URL</label>
+                                        <input type="url" class="form-control" name="link_url_0" placeholder="https://...">
+                                    </div>
+                                    <div class="col-md-1 d-flex align-items-end justify-content-center pb-3">
+                                        <button type="button" class="remove-entry" onclick="removeLink(this)" title="Remove link"><i class="bi bi-trash3"></i></button>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                                    <textarea class="form-control" name="link_description_0" rows="2" placeholder="Brief description of this link..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary" onclick="addLink()">+ Add Link</button>
+                    </div>
                 </div>
             </div>
 
@@ -355,10 +490,12 @@
 {% block extra_js %}
 <script>
 let currentStep = 1;
-const totalSteps = 7;
+const totalSteps = 8;
 let educationCount = 1;
 let employmentCount = 1;
 let skillCount = 1;
+let documentCount = 1;
+let linkCount = 1;
 let skillsAnalyzed = false;  // Track if skills have been analyzed
 let originalSkillDescriptions = new Map();  // Track original skill description values
 
@@ -390,6 +527,11 @@ function nextStep() {
         // If entering skills step for first time, capture original descriptions
         if (currentStep === 5 && originalSkillDescriptions.size === 0) {
             setTimeout(() => captureOriginalSkillDescriptions(), 100);
+        }
+        
+        // If entering documents & links step, pre-populate from scanning
+        if (currentStep === 8) {
+            setTimeout(() => populateDocumentsAndLinksFromScanning(), 100);
         }
         
         // Update navigation buttons
@@ -538,7 +680,7 @@ function reviewSkillsWithAI() {
                 skillsAnalyzed = true;
                 captureOriginalSkillDescriptions();
                 
-                nextBtn.textContent = 'Continue to Availability →';
+                nextBtn.textContent = 'Continue →';
                 nextBtn.disabled = false;
                 
                 // Don't auto-proceed - let user click continue manually
@@ -690,9 +832,9 @@ document.getElementById('resumeFile').addEventListener('change', function(e) {
 });
 
 function simulateResumeUpload() {
-    const progressContainer = document.getElementById('progressContainer');
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
+    const progressContainer = document.getElementById('resumeProgressContainer');
+    const progressFill = document.getElementById('resumeProgressFill');
+    const progressText = document.getElementById('resumeProgressText');
     
     progressContainer.style.display = 'block';
     
@@ -713,8 +855,7 @@ function simulateResumeUpload() {
             setTimeout(() => {
                 populateFromResume();
                 progressContainer.style.display = 'none';
-                // Auto-advance to next step
-                setTimeout(nextStep, 1000);
+                document.getElementById('resumeSuccess').style.display = 'block';
             }, 500);
         }
     }, 200);
@@ -742,13 +883,213 @@ function populateFromResume() {
     }, 500);
 }
 
+// Student webpage scanning functionality
+function scanStudentWebpage() {
+    const urlInput = document.getElementById('profileWebpageUrl');
+    const url = urlInput.value.trim();
+    
+    if (!url) {
+        alert('Please enter a profile URL');
+        return;
+    }
+    
+    simulateStudentWebpageScan(url);
+}
+
+function simulateStudentWebpageScan(url) {
+    const progressContainer = document.getElementById('webpageProfileProgressContainer');
+    const progressFill = document.getElementById('webpageProfileProgressFill');
+    const progressText = document.getElementById('webpageProfileProgressText');
+    
+    progressContainer.style.display = 'block';
+    
+    // Reset progress bar to 0
+    progressFill.style.width = '0%';
+    progressText.textContent = '0%';
+    
+    let progress = 0;
+    const stages = [
+        'Connecting to profile...',
+        'Analyzing profile content...',
+        'Extracting personal information...',
+        'Processing skills and experience...',
+        'Finalizing data extraction...'
+    ];
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress > 100) progress = 100;
+        
+        progressFill.style.width = progress + '%';
+        const stageIndex = Math.floor((progress / 100) * stages.length);
+        progressText.textContent = stages[Math.min(stageIndex, stages.length - 1)];
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                // Call the API to extract data
+                extractStudentWebpageData(url);
+            }, 500);
+        }
+    }, 300);
+}
+
+function extractStudentWebpageData(url) {
+    fetch('/api/content/scan-webpage/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: new URLSearchParams({
+            webpage_url: url,
+            scan_type: 'student',
+            csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            populateFromStudentWebpage(data.extracted_data, url);
+            document.getElementById('webpageProfileProgressContainer').style.display = 'none';
+            document.getElementById('webpageSuccess').style.display = 'block';
+        } else {
+            alert('Error scanning profile: ' + data.message);
+            document.getElementById('webpageProfileProgressContainer').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while scanning the profile. Please try again.');
+        document.getElementById('webpageProfileProgressContainer').style.display = 'none';
+    });
+}
+
+function populateFromStudentWebpage(data, originalUrl) {
+    // Populate basic information
+    if (data.first_name) {
+        document.getElementById('firstName').value = data.first_name;
+    }
+    if (data.last_name) {
+        document.getElementById('lastName').value = data.last_name;
+    }
+    if (data.email) {
+        document.getElementById('email').value = data.email;
+    }
+    if (data.phone) {
+        document.getElementById('phone').value = data.phone;
+    }
+    if (data.academic_year) {
+        document.getElementById('academicYear').value = data.academic_year;
+    }
+    if (data.program) {
+        document.getElementById('program').value = data.program;
+    }
+    
+    // Store extracted data for later population of education, employment, and skills
+    // (External links will be populated in Step 8 Documents & Links)
+    window.extractedWebpageData = data;
+    window.scannedProfileUrl = originalUrl;
+}
+
+// Document management functions
+function addDocument() {
+    const container = document.getElementById('documentsContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names and clear values
+    const inputs = newItem.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${documentCount}`);
+        input.name = name;
+        input.value = '';
+    });
+    
+    container.appendChild(newItem);
+    documentCount++;
+}
+
+function removeDocument(button) {
+    const container = document.getElementById('documentsContainer');
+    if (container.children.length > 1) {
+        button.closest('.document-item').remove();
+    }
+}
+
+// Link management functions  
+function addLink() {
+    const container = document.getElementById('linksContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names and clear values
+    const inputs = newItem.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${linkCount}`);
+        input.name = name;
+        input.value = '';
+    });
+    
+    container.appendChild(newItem);
+    linkCount++;
+}
+
+function removeLink(button) {
+    const container = document.getElementById('linksContainer');
+    if (container.children.length > 1) {
+        button.closest('.link-item').remove();
+    }
+}
+
+// Pre-populate documents and links from scanning
+function populateDocumentsAndLinksFromScanning() {
+    // If resume was uploaded, add it to documents
+    const resumeFile = document.getElementById('resumeFile');
+    if (resumeFile.files.length > 0) {
+        const firstDocType = document.querySelector('select[name="document_type_0"]');
+        const firstDocTitle = document.querySelector('input[name="document_title_0"]');
+        const firstDocDescription = document.querySelector('textarea[name="document_description_0"]');
+        
+        if (firstDocType) firstDocType.value = 'resume';
+        if (firstDocTitle) firstDocTitle.value = 'Uploaded Resume';
+        if (firstDocDescription) firstDocDescription.value = 'Resume uploaded during registration process';
+    }
+    
+    // If webpage was scanned, add it to links
+    const profileUrl = window.scannedProfileUrl;
+    if (profileUrl) {
+        const firstLinkType = document.querySelector('select[name="link_type_0"]');
+        const firstLinkTitle = document.querySelector('input[name="link_title_0"]');  
+        const firstLinkUrl = document.querySelector('input[name="link_url_0"]');
+        const firstLinkDescription = document.querySelector('textarea[name="link_description_0"]');
+        
+        // Determine link type from URL
+        let linkType = 'other';
+        let linkTitle = 'Scanned Profile';
+        if (profileUrl.includes('linkedin.com')) {
+            linkType = 'linkedin';
+            linkTitle = 'LinkedIn Profile';
+        } else if (profileUrl.includes('github.com')) {
+            linkType = 'github'; 
+            linkTitle = 'GitHub Profile';
+        } else if (profileUrl.includes('portfolio') || profileUrl.includes('behance') || profileUrl.includes('dribbble')) {
+            linkType = 'portfolio';
+            linkTitle = 'Portfolio Website';
+        }
+        
+        if (firstLinkType) firstLinkType.value = linkType;
+        if (firstLinkTitle) firstLinkTitle.value = linkTitle;
+        if (firstLinkUrl) firstLinkUrl.value = profileUrl;
+        if (firstLinkDescription) firstLinkDescription.value = 'Profile scanned during registration process';
+    }
+}
+
 // Form submission
 function submitForm() {
     const form = document.getElementById('registrationForm');
     const formData = new FormData(form);
     
     // Set final step
-    formData.set('current_step', '7');
+    formData.set('current_step', '8');
     
     const submitBtn = document.getElementById('submitBtn');
     const originalText = submitBtn.textContent;
@@ -799,9 +1140,57 @@ function submitForm() {
     });
 }
 
+// Demo mode function for Step 1
+function fillDemoProfileUrl() {
+    // Fill the profile URL with a demo LinkedIn profile
+    const profileUrlField = document.getElementById('profileWebpageUrl');
+    if (profileUrlField) {
+        profileUrlField.value = 'https://linkedin.com/in/sarah-chen';
+        
+        // Show brief feedback
+        showDemoModeActivated('Profile URL filled with demo LinkedIn profile');
+    }
+}
+
+function showDemoModeActivated(message = 'Demo Mode Activated!') {
+    // Create temporary notification
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-info alert-dismissible fade show position-fixed';
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="bi bi-info-circle"></i> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     updateNavigationButtons();
+    
+    // Add Enter key support for profile URL
+    document.getElementById('profileWebpageUrl').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            scanStudentWebpage();
+        }
+    });
+    
+    // Demo mode key combination (Ctrl+Shift+D) - only active on Step 1
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'D' && currentStep === 1) {
+            e.preventDefault();
+            fillDemoProfileUrl();
+        }
+    });
 });
 </script>
 {% endblock %}

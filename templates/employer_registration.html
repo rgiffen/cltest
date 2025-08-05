@@ -16,9 +16,13 @@
     <div class="form-container">
         <!-- Step Indicator -->
         <div class="step-indicator" id="stepIndicator">
+            <div class="step" data-step="0">
+                <div class="step-number active" id="step0">0</div>
+                <div class="step-title active">Company Scan</div>
+            </div>
             <div class="step" data-step="1">
-                <div class="step-number active" id="step1">1</div>
-                <div class="step-title active">Account Setup</div>
+                <div class="step-number" id="step1">1</div>
+                <div class="step-title">Account Setup</div>
             </div>
             <div class="step" data-step="2">
                 <div class="step-number" id="step2">2</div>
@@ -27,10 +31,6 @@
             <div class="step" data-step="3">
                 <div class="step-number" id="step3">3</div>
                 <div class="step-title">Contact Details</div>
-            </div>
-            <div class="step" data-step="4">
-                <div class="step-number" id="step4">4</div>
-                <div class="step-title">Verification</div>
             </div>
         </div>
 
@@ -46,11 +46,42 @@
         <!-- Registration Form -->
         <form id="employerRegistrationForm">
             {% csrf_token %}
-            <input type="hidden" name="current_step" id="currentStep" value="1">
+            <input type="hidden" name="current_step" id="currentStep" value="0">
             
             <div id="formContent">
+                <!-- Step 0: Company Webpage Scan -->
+                <div class="step-content" id="stepContent0">
+                    <h3 class="mb-4">Speed Up Registration <span class="text-muted">(Optional)</span></h3>
+                    <div class="resume-upload" onclick="document.getElementById('webpageUrl').focus()">
+                        <div class="upload-icon">🌐</div>
+                        <h4>Scan your company website <small class="text-muted">(Optional)</small></h4>
+                        <p>Enter your company website URL to automatically fill in company details</p>
+                        <small class="text-muted">You can skip this step and fill out your information manually</small>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label for="webpageUrl" class="form-label">Company Website URL</label>
+                        <div class="input-group">
+                            <input type="url" class="form-control" id="webpageUrl" name="webpage_url" 
+                                   placeholder="https://www.yourcompany.com">
+                            <button type="button" class="btn btn-primary" onclick="scanWebpage()">
+                                <i class="bi bi-search"></i> Scan Website
+                            </button>
+                        </div>
+                        <div class="form-text">Try: "https://techcorp.com", "https://creative-agency.com", or "https://healthcare.com"</div>
+                    </div>
+                    
+                    <div class="progress-container" id="webpageProgressContainer">
+                        <p>Scanning website and extracting company information...</p>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="webpageProgressFill"></div>
+                        </div>
+                        <p id="webpageProgressText">0%</p>
+                    </div>
+                </div>
+
                 <!-- Step 1: Account Setup -->
-                <div class="step-content" id="stepContent1">
+                <div class="step-content d-none" id="stepContent1">
                     <h3 class="mb-4">Account Setup</h3>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -132,9 +163,9 @@
                 <!-- Step 3: Contact Details -->
                 <div class="step-content d-none" id="stepContent3">
                     <h3 class="mb-4">Primary Contact Information</h3>
-                    <div class="alert alert-info">
-                        <strong>Note:</strong> This information will be used for student communications and project coordination.
-                    </div>
+                    <!-- <div class="alert alert-info"> -->
+                        <!-- <strong>Note:</strong> This information will be used for student communications and project coordination. -->
+                    <!-- </div> -->
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -209,40 +240,6 @@
                     </div>
                 </div>
 
-                <!-- Step 4: Verification -->
-                <div class="step-content d-none" id="stepContent4">
-                    <h3 class="mb-4">Account Verification</h3>
-                    
-                    <div class="ai-analysis-progress" id="companyVerification" style="display: block;">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                            <span>AI is verifying your company information...</span>
-                        </div>
-                        <div class="progress mb-2">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
-                                 style="width: 0%" id="verificationProgressBar"></div>
-                        </div>
-                        <small class="text-muted" id="verificationProgressText">Initializing verification...</small>
-                    </div>
-
-                    <div class="verification-results d-none" id="verificationResults">
-                        <div class="alert alert-success">
-                            <h5><i class="bi bi-check-circle"></i> Verification Complete</h5>
-                            <p class="mb-2">Your company information has been analyzed and looks legitimate.</p>
-                            <ul class="mb-0">
-                                <li>✅ Company domain verification</li>
-                                <li>✅ Business information validation</li>
-                                <li>✅ Contact details verified</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="alert alert-info">
-                            <h6>Next Steps:</h6>
-                            <p class="mb-1">Your account will be reviewed by our admin team within 24-48 hours. You'll receive an email notification once approved.</p>
-                            <p class="mb-0">Once approved, you can start posting projects and connecting with students.</p>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Navigation Buttons -->
@@ -264,17 +261,11 @@
 
 {% block extra_js %}
 <script>
-let currentStep = 1;
-const totalSteps = 4;
+let currentStep = 0;
+const totalSteps = 3;
 
 // Step navigation
 function nextStep() {
-    if (currentStep === 4) {
-        // Start verification process
-        startCompanyVerification();
-        return;
-    }
-    
     if (currentStep < totalSteps) {
         // Hide current step
         document.getElementById(`stepContent${currentStep}`).classList.add('d-none');
@@ -303,7 +294,7 @@ function nextStep() {
 }
 
 function previousStep() {
-    if (currentStep > 1) {
+    if (currentStep > 0) {
         // Hide current step
         document.getElementById(`stepContent${currentStep}`).classList.add('d-none');
         updateStepIndicator(currentStep, '');
@@ -342,67 +333,18 @@ function updateNavigationButtons() {
     const submitBtn = document.getElementById('submitBtn');
     
     // Show/hide previous button
-    prevBtn.style.display = currentStep > 1 ? 'block' : 'none';
+    prevBtn.style.display = currentStep > 0 ? 'block' : 'none';
     
     // Update next button text and show/hide submit button
     if (currentStep === totalSteps) {
-        nextBtn.textContent = 'Verify Information →';
-        submitBtn.classList.add('d-none');
+        nextBtn.classList.add('d-none');
+        submitBtn.classList.remove('d-none');
     } else {
         nextBtn.classList.remove('d-none');
         submitBtn.classList.add('d-none');
     }
 }
 
-// Company Verification
-function startCompanyVerification() {
-    const nextBtn = document.getElementById('nextBtn');
-    nextBtn.textContent = 'Verifying...';
-    nextBtn.disabled = true;
-    
-    // Show progress
-    let progress = 0;
-    const progressBar = document.getElementById('verificationProgressBar');
-    const progressText = document.getElementById('verificationProgressText');
-    
-    const stages = [
-        'Checking company domain...',
-        'Validating business information...',
-        'Verifying contact details...',
-        'Running security checks...',
-        'Finalizing verification...'
-    ];
-    
-    const interval = setInterval(() => {
-        progress += Math.random() * 20;
-        if (progress > 100) progress = 100;
-        
-        progressBar.style.width = progress + '%';
-        const stageIndex = Math.floor((progress / 100) * stages.length);
-        progressText.textContent = stages[Math.min(stageIndex, stages.length - 1)];
-        
-        if (progress >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-                showVerificationResults();
-            }, 1000);
-        }
-    }, 300);
-}
-
-function showVerificationResults() {
-    document.getElementById('companyVerification').style.display = 'none';
-    document.getElementById('verificationResults').classList.remove('d-none');
-    
-    // Show submit button
-    const nextBtn = document.getElementById('nextBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    nextBtn.classList.add('d-none');
-    submitBtn.classList.remove('d-none');
-    
-    updateStepIndicator(currentStep, 'completed');
-}
 
 // Form submission
 function submitForm() {
@@ -428,7 +370,7 @@ function submitForm() {
     const formData = new FormData(form);
     
     // Set final step
-    formData.set('current_step', '4');
+    formData.set('current_step', '3');
     
     const submitBtn = document.getElementById('submitBtn');
     const originalText = submitBtn.textContent;
@@ -482,8 +424,8 @@ function submitForm() {
 }
 
 function showStep(step) {
-    // Hide all steps
-    for (let i = 1; i <= totalSteps; i++) {
+    // Hide all steps (including step 0)
+    for (let i = 0; i <= totalSteps; i++) {
         document.getElementById(`stepContent${i}`).classList.add('d-none');
         updateStepIndicator(i, '');
     }
@@ -495,6 +437,118 @@ function showStep(step) {
     updateNavigationButtons();
 }
 
+// Webpage scanning functionality
+function scanWebpage() {
+    const urlInput = document.getElementById('webpageUrl');
+    const url = urlInput.value.trim();
+    
+    if (!url) {
+        alert('Please enter a website URL');
+        return;
+    }
+    
+    simulateWebpageScan(url);
+}
+
+function simulateWebpageScan(url) {
+    const progressContainer = document.getElementById('webpageProgressContainer');
+    const progressFill = document.getElementById('webpageProgressFill');
+    const progressText = document.getElementById('webpageProgressText');
+    
+    progressContainer.style.display = 'block';
+    
+    // Reset progress bar to 0
+    progressFill.style.width = '0%';
+    progressText.textContent = '0%';
+    
+    let progress = 0;
+    const stages = [
+        'Connecting to website...',
+        'Analyzing page content...',
+        'Extracting company information...',
+        'Processing business details...',
+        'Finalizing data extraction...'
+    ];
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 20;
+        if (progress > 100) progress = 100;
+        
+        progressFill.style.width = progress + '%';
+        const stageIndex = Math.floor((progress / 100) * stages.length);
+        progressText.textContent = stages[Math.min(stageIndex, stages.length - 1)];
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                // Call the API to extract data
+                extractWebpageData(url);
+            }, 500);
+        }
+    }, 300);
+}
+
+function extractWebpageData(url) {
+    fetch('/api/content/scan-webpage/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: new URLSearchParams({
+            webpage_url: url,
+            csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            populateFromWebpage(data.extracted_data);
+            document.getElementById('webpageProgressContainer').style.display = 'none';
+            // Auto-advance to next step after delay
+            setTimeout(() => {
+                nextStep();
+            }, 1000);
+        } else {
+            alert('Error scanning webpage: ' + data.message);
+            document.getElementById('webpageProgressContainer').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while scanning the webpage. Please try again.');
+        document.getElementById('webpageProgressContainer').style.display = 'none';
+    });
+}
+
+function populateFromWebpage(data) {
+    // Populate company information in step 2
+    if (data.company_name) {
+        document.getElementById('companyName').value = data.company_name;
+    }
+    if (data.industry) {
+        document.getElementById('industry').value = data.industry;
+    }
+    if (data.website) {
+        document.getElementById('website').value = data.website;
+    }
+    if (data.company_location) {
+        document.getElementById('companyLocation').value = data.company_location;
+    }
+    if (data.company_description) {
+        document.getElementById('companyDescription').value = data.company_description;
+    }
+    
+    // Show success feedback
+    const scanContainer = document.querySelector('#stepContent0 .resume-upload');
+    scanContainer.innerHTML = `
+        <div class="upload-icon">✅</div>
+        <h4 class="text-success">Website Scanned Successfully!</h4>
+        <p>Company information has been extracted and will be pre-filled in the next steps.</p>
+        <small class="text-muted">You can review and modify the information as needed.</small>
+    `;
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     updateNavigationButtons();
@@ -504,6 +558,14 @@ document.addEventListener('DOMContentLoaded', function() {
         field.addEventListener('input', function() {
             analyzeField(this);
         });
+    });
+    
+    // Add Enter key support for webpage URL
+    document.getElementById('webpageUrl').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            scanWebpage();
+        }
     });
 });
 </script>

@@ -490,6 +490,11 @@
             }
         }
 
+        /* Fix for Bootstrap display-1 italic styling on emojis */
+        .display-1 {
+            font-style: normal !important;
+        }
+
         @media (max-width: 768px) {
             .step {
                 margin: 0 5px;
@@ -661,6 +666,37 @@
                 }
             }
             
+            // Company description analysis for employer registration
+            if (fieldId && fieldId.includes('companyDescription')) {
+                const lowerValue = currentValue.toLowerCase();
+                if (lowerValue.includes('technology') || lowerValue.includes('tech')) {
+                    showAnnotation(field, 'Great! What specific technologies does your company use or specialize in?', 'info');
+                    analyzedFieldVersions.set(fieldId, currentValue);
+                    return;
+                } else if (lowerValue.includes('startup') || lowerValue.includes('growing')) {
+                    showAnnotation(field, 'Consider mentioning your company size, founding year, or recent growth milestones.', 'info');
+                    analyzedFieldVersions.set(fieldId, currentValue);
+                    return;
+                } else if (lowerValue.includes('software') || lowerValue.includes('development')) {
+                    showAnnotation(field, 'What types of software do you develop? Web, mobile, enterprise, or specialized applications?', 'info');
+                    analyzedFieldVersions.set(fieldId, currentValue);
+                    return;
+                } else if (currentValue.length < 50) {
+                    showAnnotation(field, 'Consider adding more details about your company\'s mission, values, and what makes it unique.', 'info');
+                    analyzedFieldVersions.set(fieldId, currentValue);
+                    return;
+                } else if (currentValue.length > 200) {
+                    showAnnotation(field, '✓ Comprehensive description! This will help students understand your company well.', 'success');
+                    analyzedFieldVersions.set(fieldId, currentValue);
+                    return;
+                } else {
+                    // For other company descriptions, just mark as analyzed
+                    analyzedFieldVersions.set(fieldId, currentValue);
+                    removeAnnotation(field);
+                    return;
+                }
+            }
+            
             clearTimeout(aiAnalysisTimeout);
             aiAnalysisTimeout = setTimeout(() => {
                 // Double-check field hasn't changed during timeout
@@ -671,31 +707,32 @@
                 isAnalyzing = true;
                 removeAnnotation(field);
                 
-                // Make HTMX request for AI analysis
-                htmx.ajax('POST', '/api/content/validate-responses/', {
-                    values: {
+                // Use regular fetch instead of HTMX for AI analysis
+                fetch('/api/content/validate-responses/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: new URLSearchParams({
                         field_name: fieldId,
                         field_value: currentValue,
                         csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    swap: 'none'
-                }).then(function(response) {
-                    try {
-                        const data = JSON.parse(response.xhr.responseText);
-                        if (data.validation && data.validation.message) {
-                            showAnnotation(field, data.validation.message, data.validation.type || 'info');
-                            analyzedFieldVersions.set(fieldId, currentValue);
-                        }
-                    } catch (e) {
-                        console.warn('Failed to parse AI analysis response:', e);
-                        // Still mark as analyzed to prevent retries
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.validation && data.validation.message) {
+                        showAnnotation(field, data.validation.message, data.validation.type || 'info');
                         analyzedFieldVersions.set(fieldId, currentValue);
                     }
-                }).catch(function(error) {
+                })
+                .catch(error => {
                     console.warn('AI analysis request failed:', error);
                     // Still mark as analyzed to prevent retries
                     analyzedFieldVersions.set(fieldId, currentValue);
-                }).finally(function() {
+                })
+                .finally(() => {
                     isAnalyzing = false;
                 });
             }, 1500);  // Increased delay to prevent excessive requests

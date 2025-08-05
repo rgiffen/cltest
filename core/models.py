@@ -68,6 +68,13 @@ class StudentProfile(models.Model):
     # Resume
     resume = models.FileField(upload_to='resumes/', blank=True, null=True)
     
+    # External Links/Profiles
+    external_links = models.JSONField(default=dict, blank=True)  # Store LinkedIn, GitHub, portfolio URLs
+    
+    # Documents and Links (from Step 8)
+    documents = models.JSONField(default=list, blank=True)  # Store document information
+    profile_links = models.JSONField(default=list, blank=True)  # Store external links with metadata
+    
     # Availability
     availability = models.JSONField(default=list, blank=True)  # Store selected availability options
     currently_available = models.CharField(max_length=10, choices=CURRENT_AVAILABILITY_CHOICES, blank=True)

@@ -29,12 +29,14 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="first_name" class="form-label">First Name *</label>
-                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                                           autocomplete="given-name" required>
                                     <div class="invalid-feedback"></div>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="last_name" class="form-label">Last Name *</label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                                           autocomplete="family-name" required>
                                     <div class="invalid-feedback"></div>
                                 </div>
                             </div>
@@ -43,7 +45,7 @@
                             <div class="mb-3">
                                 <label for="email" class="form-label">Memorial University Email *</label>
                                 <input type="email" class="form-control" id="email" name="email" 
-                                       placeholder="yourname@mun.ca" required>
+                                       placeholder="yourname@mun.ca" autocomplete="email" required>
                                 <div class="form-text">Only @mun.ca email addresses are accepted</div>
                                 <div class="invalid-feedback"></div>
                                 <div class="valid-feedback">
@@ -55,7 +57,7 @@
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password *</label>
                                 <input type="password" class="form-control" id="password" name="password" 
-                                       minlength="8" required>
+                                       minlength="8" autocomplete="new-password" required>
                                 <div class="form-text">Password must be at least 8 characters long</div>
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -63,7 +65,7 @@
                             <div class="mb-3">
                                 <label for="confirm_password" class="form-label">Confirm Password *</label>
                                 <input type="password" class="form-control" id="confirm_password" 
-                                       name="confirm_password" required>
+                                       name="confirm_password" autocomplete="new-password" required>
                                 <div class="invalid-feedback"></div>
                                 <div class="valid-feedback">
                                     <i class="bi bi-check-circle"></i> Passwords match
@@ -130,6 +132,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const createAccountBtn = document.getElementById('createAccountBtn');
     const messageContainer = document.getElementById('messageContainer');
     
+    // Demo mode key combination (Ctrl+Shift+D)
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+            e.preventDefault();
+            fillDemoData();
+        }
+    });
+    
     // Real-time email validation
     emailField.addEventListener('input', function() {
         validateEmail();
@@ -152,6 +162,44 @@ document.addEventListener('DOMContentLoaded', function() {
             createAccount();
         }
     });
+    
+    function fillDemoData() {
+        // Fill form with demo data
+        document.getElementById('first_name').value = 'Demo';
+        document.getElementById('last_name').value = 'Student';
+        document.getElementById('email').value = 'demo.student@mun.ca';
+        document.getElementById('password').value = 'password123';
+        document.getElementById('confirm_password').value = 'password123';
+        document.getElementById('terms').checked = true;
+        
+        // Trigger validation for filled fields
+        validateEmail();
+        validatePasswordMatch();
+        
+        // Show brief feedback
+        showDemoModeActivated();
+    }
+    
+    function showDemoModeActivated() {
+        // Create temporary notification
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-info alert-dismissible fade show position-fixed';
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            <i class="bi bi-info-circle"></i> Demo Mode Activated!
+            <small class="d-block">All fields have been filled with sample data.</small>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
+    }
     
     function validateEmail() {
         const email = emailField.value.trim().toLowerCase();
@@ -334,10 +382,14 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .valid-feedback {
-    display: block;
+    display: none;
     color: #198754;
     font-size: 0.875em;
     margin-top: 0.25rem;
+}
+
+.form-control.is-valid ~ .valid-feedback {
+    display: block;
 }
 
 .card {

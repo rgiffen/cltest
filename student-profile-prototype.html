@@ -536,6 +536,7 @@
             const value = field.value.trim();
             const fieldName = field.name || field.id;
 
+            {% comment %}
             // AI analysis rules
             switch(fieldName) {
                 case 'name':
@@ -571,6 +572,7 @@
                     }
                     break;
             }
+            {% endcomment %}
             
             return null;
         }

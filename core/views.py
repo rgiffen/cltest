@@ -86,7 +86,7 @@ def process_student_registration(request):
     """Handle the profile creation steps (after account is created)"""
     current_step = int(request.POST.get('current_step', 1))
     
-    if current_step == 7:  # Final step - create complete profile
+    if current_step == 8:  # Final step - create complete profile
         return create_student_profile(request)
     
     # For other steps, just return success (client-side navigation)
@@ -111,6 +111,17 @@ def create_student_profile(request):
                 'message': 'Profile already exists.'
             })
         
+        # Collect external links
+        external_links = {}
+        if request.POST.get('linkedin_url'):
+            external_links['linkedin'] = request.POST.get('linkedin_url')
+        if request.POST.get('github_url'):
+            external_links['github'] = request.POST.get('github_url')  
+        if request.POST.get('portfolio_url'):
+            external_links['portfolio'] = request.POST.get('portfolio_url')
+        if request.POST.get('other_url'):
+            external_links['other'] = request.POST.get('other_url')
+        
         # Create student profile
         profile = StudentProfile.objects.create(
             user=user,
@@ -125,6 +136,7 @@ def create_student_profile(request):
             career_goals=request.POST.get('career_goals', ''),
             additional_info=request.POST.get('additional_info', ''),
             availability=request.POST.getlist('availability'),
+            external_links=external_links,
             profile_complete=True
         )
         
@@ -173,6 +185,43 @@ def create_student_profile(request):
                     experience_description=request.POST.get(f'skill_description_{skill_count}', '')
                 )
             skill_count += 1
+        
+        # Create documents entries
+        documents = []
+        document_count = 0
+        while f'document_type_{document_count}' in request.POST:
+            doc_type = request.POST.get(f'document_type_{document_count}')
+            doc_title = request.POST.get(f'document_title_{document_count}')
+            if doc_type or doc_title:
+                document_entry = {
+                    'type': doc_type,
+                    'title': doc_title,
+                    'description': request.POST.get(f'document_description_{document_count}', ''),
+                    'file_uploaded': bool(request.FILES.get(f'document_file_{document_count}'))
+                }
+                documents.append(document_entry)
+            document_count += 1
+        
+        # Create profile links entries
+        profile_links = []
+        link_count = 0
+        while f'link_type_{link_count}' in request.POST:
+            link_type = request.POST.get(f'link_type_{link_count}')
+            link_url = request.POST.get(f'link_url_{link_count}')
+            if link_type or link_url:
+                link_entry = {
+                    'type': link_type,
+                    'title': request.POST.get(f'link_title_{link_count}', ''),
+                    'url': link_url,
+                    'description': request.POST.get(f'link_description_{link_count}', '')
+                }
+                profile_links.append(link_entry)
+            link_count += 1
+        
+        # Update profile with documents and links
+        profile.documents = documents
+        profile.profile_links = profile_links
+        profile.save()
         
         return JsonResponse({
             'status': 'success', 
@@ -266,7 +315,7 @@ def employer_register(request):
 def process_employer_registration(request):
     current_step = int(request.POST.get('current_step', 1))
     
-    if current_step == 4:  # Final step - create employer account
+    if current_step == 3:  # Final step - create employer account
         return create_employer_account(request)
     
     # For other steps, just return success (client-side navigation)
@@ -427,6 +476,17 @@ def update_student_profile(request, profile):
         user.email = request.POST.get('email', user.email)
         user.save()
         
+        # Update external links
+        external_links = {}
+        if request.POST.get('linkedin_url'):
+            external_links['linkedin'] = request.POST.get('linkedin_url')
+        if request.POST.get('github_url'):
+            external_links['github'] = request.POST.get('github_url')  
+        if request.POST.get('portfolio_url'):
+            external_links['portfolio'] = request.POST.get('portfolio_url')
+        if request.POST.get('other_url'):
+            external_links['other'] = request.POST.get('other_url')
+        
         # Update profile information
         profile.phone = request.POST.get('phone', '')
         profile.academic_year = request.POST.get('academic_year', '')
@@ -439,6 +499,7 @@ def update_student_profile(request, profile):
         profile.career_goals = request.POST.get('career_goals', '')
         profile.additional_info = request.POST.get('additional_info', '')
         profile.availability = request.POST.getlist('availability')
+        profile.external_links = external_links
         profile.save()
         
         # Update education entries (delete existing and recreate)
@@ -490,7 +551,6 @@ def update_student_profile(request, profile):
                 )
             skill_count += 1
         
-        messages.success(request, 'Your profile has been updated successfully!')
         return redirect('core:student_dashboard')
         
     except Exception as e:
