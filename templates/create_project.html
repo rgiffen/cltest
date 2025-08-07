@@ -170,7 +170,7 @@
                 <a href="{% url 'core:employer_dashboard' %}" class="btn btn-outline-secondary">← Back to Dashboard</a>
                 <div>
                     <button type="button" class="btn btn-info me-2" onclick="previewMatching()">Preview AI Matching</button>
-                    <button type="submit" class="btn btn-primary">Post Project</button>
+                    <button type="submit" class="btn btn-primary">Add Project</button>
                 </div>
             </div>
         </form>
@@ -286,6 +286,50 @@ document.addEventListener('DOMContentLoaded', function() {
             analyzeField(this);
         });
     });
+    
+    // Demo mode key combination (Ctrl+Shift+D)
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+            e.preventDefault();
+            fillDemoProjectData();
+        }
+    });
 });
+
+// Demo mode function for project creation
+function fillDemoProjectData() {
+    // Fill project details
+    document.getElementById('title').value = 'E-commerce Mobile App Development';
+    document.getElementById('projectType').value = 'mobile_app';
+    document.getElementById('duration').value = '2-3_months';
+    document.getElementById('workType').value = 'hybrid';
+    document.getElementById('description').value = 'We need to develop a cross-platform mobile application for our online retail business. The app should include user authentication, product catalog browsing, shopping cart functionality, secure payment processing, and order tracking. The ideal candidate should have experience with React Native or Flutter, API integration, and mobile app deployment to both iOS and Android app stores.';
+    
+    // Fill required skills
+    document.querySelector('input[name="required_skills_0"]').value = 'React Native';
+    
+    // Add more required skills
+    if (document.getElementById('requiredSkillsContainer').children.length === 1) {
+        addSkill('required');
+        document.querySelector('input[name="required_skills_1"]').value = 'JavaScript';
+        addSkill('required');
+        document.querySelector('input[name="required_skills_2"]').value = 'API Integration';
+    }
+    
+    // Fill preferred skills
+    document.querySelector('input[name="preferred_skills_0"]').value = 'Firebase';
+    
+    // Add more preferred skills
+    if (document.getElementById('preferredSkillsContainer').children.length === 1) {
+        addSkill('preferred');
+        document.querySelector('input[name="preferred_skills_1"]').value = 'Redux';
+        addSkill('preferred');
+        document.querySelector('input[name="preferred_skills_2"]').value = 'Payment Gateway Integration';
+    }
+    
+    // Fill requirements
+    document.getElementById('minAcademicYear').value = 'junior';
+    document.querySelector('input[name="preferred_programs"]').value = 'Computer Science, Software Engineering';
+}
 </script>
 {% endblock %}

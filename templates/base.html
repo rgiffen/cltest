@@ -646,15 +646,17 @@
             // Skip individual analysis during registration - handled by overall review
             if (fieldId && fieldId.includes('skill_description') && !document.getElementById('registrationForm')) {
                 const lowerValue = currentValue.toLowerCase();
-                if (lowerValue.includes('python web development')) {
+                
+                // Only show comment for EXACT matches with trigger phrases
+                if (lowerValue === 'python web development') {
                     showAnnotation(field, 'What specific Python frameworks have you used? Django, Flask, FastAPI?', 'info');
                     analyzedFieldVersions.set(fieldId, currentValue);
                     return;
-                } else if (lowerValue.includes('javascript')) {
+                } else if (lowerValue === 'javascript') {
                     showAnnotation(field, 'Have you worked with React, Vue, or Node.js? Consider mentioning specific projects.', 'info');
                     analyzedFieldVersions.set(fieldId, currentValue);
                     return;
-                } else if (lowerValue.includes('database')) {
+                } else if (lowerValue === 'database') {
                     showAnnotation(field, 'Which database systems? SQL (MySQL, PostgreSQL) or NoSQL (MongoDB, Redis)?', 'info');
                     analyzedFieldVersions.set(fieldId, currentValue);
                     return;

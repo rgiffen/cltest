@@ -16,8 +16,8 @@
     <div class="form-container">
         {% if show_admin_link %}
         <div class="alert alert-info text-center mb-4">
-            Welcome back, {{ user.get_full_name }}! 
-            <a href="/admin/" class="btn btn-sm btn-primary ms-2">Go to Admin Panel</a>
+            <!-- Welcome back, {{ user.get_full_name }}!  -->
+            <a href="/admin-dashboard/" class="btn btn-sm btn-primary ms-2">Go to Admin Panel</a>
             <a href="{% url 'core:logout' %}" class="btn btn-sm btn-outline-secondary ms-2">Logout</a>
         </div>
         {% endif %}

@@ -83,21 +83,21 @@
                                         </h5>
                                         <p class="text-muted mb-2">{{ student.program }} - {{ student.university }}</p>
                                         
-                                        <!-- Match Score Breakdown -->
+                                        <!-- Match Quality Indicators -->
                                         <div class="row mb-3">
                                             <div class="col-sm-6">
                                                 <div class="progress mb-1" style="height: 8px;">
                                                     <div class="progress-bar bg-primary" role="progressbar" 
                                                          style="width: {{ match_data.skills_match }}%"></div>
                                                 </div>
-                                                <small>Skills Match: {{ match_data.skills_match|floatformat:0 }}%</small>
+                                                <small>Skills Match: {% if match_data.skills_match >= 80 %}Strong{% elif match_data.skills_match >= 60 %}Good{% elif match_data.skills_match >= 40 %}Fair{% else %}Limited{% endif %}</small>
                                             </div>
                                             <div class="col-sm-6">
                                                 <div class="progress mb-1" style="height: 8px;">
                                                     <div class="progress-bar bg-success" role="progressbar" 
                                                          style="width: {{ match_data.availability_match }}%"></div>
                                                 </div>
-                                                <small>Availability: {{ match_data.availability_match|floatformat:0 }}%</small>
+                                                <small>Availability: {% if match_data.availability_match >= 80 %}Strong{% elif match_data.availability_match >= 60 %}Good{% elif match_data.availability_match >= 40 %}Fair{% else %}Limited{% endif %}</small>
                                             </div>
                                         </div>
                                         
@@ -154,16 +154,16 @@
                                     <div class="ms-3 text-center">
                                         <div class="match-score mb-2">
                                             <div class="display-6 fw-bold text-{% if match_data.score >= 80 %}success{% elif match_data.score >= 60 %}warning{% else %}secondary{% endif %}">
-                                                {{ match_data.score|floatformat:0 }}%
+                                                {% if match_data.score >= 80 %}★★★{% elif match_data.score >= 60 %}★★☆{% else %}★☆☆{% endif %}
                                             </div>
-                                            <small class="text-muted">Match</small>
+                                            <small class="text-muted">{% if match_data.score >= 80 %}Strong Match{% elif match_data.score >= 60 %}Good Match{% else %}Possible Match{% endif %}</small>
                                         </div>
                                         <div class="btn-group-vertical btn-group-sm" role="group">
-                                            <button class="btn btn-outline-primary" onclick="contactStudent('{{ student.user.email }}', '{{ student.user.get_full_name }}')">
-                                                Contact
-                                            </button>
                                             <button class="btn btn-outline-info" onclick="viewProfile({{ student.id }})">
                                                 View Profile
+                                            </button>
+                                            <button class="btn btn-outline-primary" onclick="contactStudent('{{ student.user.email }}', '{{ student.user.get_full_name }}')">
+                                                Contact
                                             </button>
                                         </div>
                                     </div>
@@ -181,14 +181,12 @@
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label class="form-label">Minimum Match Score</label>
-                                    <input type="range" class="form-range" id="scoreFilter" min="0" max="100" value="0" 
-                                           onchange="filterByScore(this.value)">
-                                    <div class="d-flex justify-content-between">
-                                        <small>0%</small>
-                                        <small id="scoreValue">0%</small>
-                                        <small>100%</small>
-                                    </div>
+                                    <label class="form-label">Minimum Match Quality</label>
+                                    <select class="form-select form-select-sm" id="scoreFilter" onchange="filterByScoreRange(this.value)">
+                                        <option value="0">All Matches</option>
+                                        <option value="60">Good+ Matches</option>
+                                        <option value="80">Strong Matches Only</option>
+                                    </select>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -223,15 +221,15 @@
                                     <div class="row text-center">
                                         <div class="col">
                                             <div class="h5 mb-0 text-success" id="highMatches">0</div>
-                                            <small>High (80%+)</small>
+                                            <small>Strong</small>
                                         </div>
                                         <div class="col">
                                             <div class="h5 mb-0 text-warning" id="mediumMatches">0</div>
-                                            <small>Medium (60-79%)</small>
+                                            <small>Good</small>
                                         </div>
                                         <div class="col">
                                             <div class="h5 mb-0 text-secondary" id="lowMatches">0</div>
-                                            <small>Low (<60%)</small>
+                                            <small>Possible</small>
                                         </div>
                                     </div>
                                 </div>
@@ -321,9 +319,7 @@ function updateMatchSummary() {
     document.getElementById('lowMatches').textContent = low;
 }
 
-function filterByScore(minScore) {
-    document.getElementById('scoreValue').textContent = minScore + '%';
-    
+function filterByScoreRange(minScore) {
     const matches = document.querySelectorAll('.student-match');
     matches.forEach(match => {
         const score = parseFloat(match.dataset.score);
@@ -348,8 +344,7 @@ function filterByAvailability() {
 }
 
 function resetFilters() {
-    document.getElementById('scoreFilter').value = 0;
-    document.getElementById('scoreValue').textContent = '0%';
+    document.getElementById('scoreFilter').value = '0';
     document.getElementById('academicFilter').value = '';
     document.getElementById('availabilityFilter').value = '';
     

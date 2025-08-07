@@ -3,6 +3,7 @@
 {% block title %}Admin Dashboard - Student-Employer Platform{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="registration-container">
     <div class="header">
         <h1>Admin Dashboard</h1>
@@ -45,6 +46,53 @@
                     <div class="card-body">
                         <div class="h3 text-warning">{{ stats.pending_approvals }}</div>
                         <small class="text-muted">Pending Approvals</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Platform Growth Trends -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">Platform Growth Trends (Last 30 Days)</h5>
+                            <small class="text-muted">Daily registration and activity patterns</small>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="chartType" id="lineChart" checked>
+                            <label class="btn btn-outline-primary" for="lineChart">Line Chart</label>
+                            <input type="radio" class="btn-check" name="chartType" id="barChart">
+                            <label class="btn btn-outline-primary" for="barChart">Bar Chart</label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Growth Summary -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2" style="width: 12px; height: 12px; background-color: #0d6efd; border-radius: 2px;"></div>
+                                    <small class="text-muted">Students</small>
+                                    <span class="badge bg-success ms-auto" id="studentGrowth">+0%</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2" style="width: 12px; height: 12px; background-color: #198754; border-radius: 2px;"></div>
+                                    <small class="text-muted">Employers</small>
+                                    <span class="badge bg-success ms-auto" id="employerGrowth">+0%</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2" style="width: 12px; height: 12px; background-color: #0dcaf0; border-radius: 2px;"></div>
+                                    <small class="text-muted">Projects</small>
+                                    <span class="badge bg-success ms-auto" id="projectGrowth">+0%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <canvas id="trendsChart" width="400" height="150"></canvas>
                     </div>
                 </div>
             </div>
@@ -232,8 +280,175 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 let currentEmployerId = null;
+let trendsChart = null;
+
+// Trend data from Django backend
+const trendData = {
+    students: {{ trend_data.students|safe }},
+    employers: {{ trend_data.employers|safe }},
+    projects: {{ trend_data.projects|safe }}
+};
+
+// Initialize charts when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeTrendsChart();
+    calculateGrowthPercentages();
+    
+    // Chart type toggle handlers
+    document.querySelectorAll('input[name="chartType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            updateChartType(this.id === 'lineChart' ? 'line' : 'bar');
+        });
+    });
+});
+
+function calculateGrowthPercentages() {
+    function getGrowthRate(data) {
+        if (data.length < 7) return 0; // Need at least a week of data
+        
+        // Calculate weekly averages for first week vs last week
+        const firstWeek = data.slice(0, 7);
+        const lastWeek = data.slice(-7);
+        
+        const firstWeekAvg = firstWeek.reduce((sum, item) => sum + item.count, 0) / firstWeek.length;
+        const lastWeekAvg = lastWeek.reduce((sum, item) => sum + item.count, 0) / lastWeek.length;
+        
+        if (firstWeekAvg === 0) return lastWeekAvg > 0 ? 100 : 0;
+        
+        return Math.round(((lastWeekAvg - firstWeekAvg) / firstWeekAvg) * 100);
+    }
+    
+    // Calculate and display growth rates
+    const studentGrowth = getGrowthRate(trendData.students);
+    const employerGrowth = getGrowthRate(trendData.employers);
+    const projectGrowth = getGrowthRate(trendData.projects);
+    
+    // Update the badges
+    updateGrowthBadge('studentGrowth', studentGrowth);
+    updateGrowthBadge('employerGrowth', employerGrowth);
+    updateGrowthBadge('projectGrowth', projectGrowth);
+}
+
+function updateGrowthBadge(elementId, growth) {
+    const badge = document.getElementById(elementId);
+    if (badge) {
+        const sign = growth >= 0 ? '+' : '';
+        badge.textContent = `${sign}${growth}%`;
+        
+        // Update badge color based on growth
+        badge.className = 'badge ms-auto';
+        if (growth > 10) {
+            badge.classList.add('bg-success');
+        } else if (growth > 0) {
+            badge.classList.add('bg-info');
+        } else if (growth === 0) {
+            badge.classList.add('bg-secondary');
+        } else {
+            badge.classList.add('bg-warning');
+        }
+    }
+}
+
+function initializeTrendsChart() {
+    const ctx = document.getElementById('trendsChart').getContext('2d');
+    
+    // Process data to get all unique dates and fill gaps
+    const allDates = new Set();
+    Object.values(trendData).forEach(dataset => {
+        dataset.forEach(item => allDates.add(item.date));
+    });
+    
+    const sortedDates = Array.from(allDates).sort();
+    
+    // Create datasets for each metric
+    const datasets = [
+        {
+            label: 'Students',
+            data: processDataForDates(trendData.students, sortedDates),
+            borderColor: '#0d6efd',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            tension: 0.4
+        },
+        {
+            label: 'Employers',
+            data: processDataForDates(trendData.employers, sortedDates),
+            borderColor: '#198754',
+            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+            tension: 0.4
+        },
+        {
+            label: 'Projects',
+            data: processDataForDates(trendData.projects, sortedDates),
+            borderColor: '#0dcaf0',
+            backgroundColor: 'rgba(13, 202, 240, 0.1)',
+            tension: 0.4
+        }
+    ];
+    
+    trendsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sortedDates.map(date => formatDateLabel(date)),
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxTicksLimit: 10
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+}
+
+function processDataForDates(dataset, dates) {
+    const dataMap = {};
+    dataset.forEach(item => {
+        dataMap[item.date] = item.count;
+    });
+    
+    return dates.map(date => dataMap[date] || 0);
+}
+
+function formatDateLabel(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function updateChartType(type) {
+    if (trendsChart) {
+        trendsChart.config.type = type;
+        trendsChart.update();
+    }
+}
 
 function approveEmployer(employerId, companyName) {
     if (!confirm(`Are you sure you want to approve ${companyName}?`)) {
@@ -378,6 +593,16 @@ function showAlert(type, message) {
     justify-content: center;
     align-items: center;
     z-index: 9999;
+    color: white;
+}
+
+#trendsChart {
+    height: 300px !important;
+}
+
+.btn-check:checked + .btn-outline-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
     color: white;
 }
 </style>

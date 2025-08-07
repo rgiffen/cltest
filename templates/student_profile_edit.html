@@ -408,6 +408,167 @@
                 </div>
             </div>
 
+            <!-- Documents -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📄 Documents</h5>
+                </div>
+                <div class="card-body">
+                    <div id="documentsContainer">
+                        {% for document in profile.documents %}
+                        <div class="document-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Document Type</label>
+                                    <select class="form-select" name="document_type_{{ forloop.counter0 }}">
+                                        <option value="">Select type</option>
+                                        <option value="resume" {% if document.type == 'resume' %}selected{% endif %}>Resume/CV</option>
+                                        <option value="transcript" {% if document.type == 'transcript' %}selected{% endif %}>Transcript</option>
+                                        <option value="portfolio" {% if document.type == 'portfolio' %}selected{% endif %}>Portfolio</option>
+                                        <option value="certificate" {% if document.type == 'certificate' %}selected{% endif %}>Certificate</option>
+                                        <option value="reference" {% if document.type == 'reference' %}selected{% endif %}>Reference Letter</option>
+                                        <option value="other" {% if document.type == 'other' %}selected{% endif %}>Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Document Title</label>
+                                    <input type="text" class="form-control" name="document_title_{{ forloop.counter0 }}" value="{{ document.title }}" placeholder="e.g., My Resume 2024">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Upload File</label>
+                                    <input type="file" class="form-control" name="document_file_{{ forloop.counter0 }}" accept=".pdf,.doc,.docx,.txt,.md,.html">
+                                    {% if document.file_uploaded %}
+                                        <small class="text-success">✓ File uploaded</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end justify-content-center pb-3">
+                                    <button type="button" class="remove-entry" onclick="removeDocument(this)" title="Remove document"><i class="bi bi-trash3"></i></button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                                <textarea class="form-control" name="document_description_{{ forloop.counter0 }}" rows="2" placeholder="Brief description of this document...">{{ document.description }}</textarea>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="document-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Document Type</label>
+                                    <select class="form-select" name="document_type_0">
+                                        <option value="">Select type</option>
+                                        <option value="resume">Resume/CV</option>
+                                        <option value="transcript">Transcript</option>
+                                        <option value="portfolio">Portfolio</option>
+                                        <option value="certificate">Certificate</option>
+                                        <option value="reference">Reference Letter</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Document Title</label>
+                                    <input type="text" class="form-control" name="document_title_0" placeholder="e.g., My Resume 2024">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Upload File</label>
+                                    <input type="file" class="form-control" name="document_file_0" accept=".pdf,.doc,.docx,.txt,.md,.html">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end justify-content-center pb-3">
+                                    <button type="button" class="remove-entry" onclick="removeDocument(this)" title="Remove document"><i class="bi bi-trash3"></i></button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                                <textarea class="form-control" name="document_description_0" rows="2" placeholder="Brief description of this document..."></textarea>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" onclick="addDocument()">+ Add Document</button>
+                </div>
+            </div>
+
+            <!-- External Links & Profiles -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">🔗 External Links & Profiles</h5>
+                </div>
+                <div class="card-body">
+                    <div id="linksContainer">
+                        {% for link in profile.profile_links %}
+                        <div class="link-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Link Type</label>
+                                    <select class="form-select" name="link_type_{{ forloop.counter0 }}">
+                                        <option value="">Select type</option>
+                                        <option value="linkedin" {% if link.type == 'linkedin' %}selected{% endif %}>LinkedIn Profile</option>
+                                        <option value="github" {% if link.type == 'github' %}selected{% endif %}>GitHub Profile</option>
+                                        <option value="portfolio" {% if link.type == 'portfolio' %}selected{% endif %}>Portfolio Website</option>
+                                        <option value="blog" {% if link.type == 'blog' %}selected{% endif %}>Blog/Personal Site</option>
+                                        <option value="behance" {% if link.type == 'behance' %}selected{% endif %}>Behance Portfolio</option>
+                                        <option value="dribbble" {% if link.type == 'dribbble' %}selected{% endif %}>Dribbble Portfolio</option>
+                                        <option value="twitter" {% if link.type == 'twitter' %}selected{% endif %}>Twitter/X Profile</option>
+                                        <option value="other" {% if link.type == 'other' %}selected{% endif %}>Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Link Title</label>
+                                    <input type="text" class="form-control" name="link_title_{{ forloop.counter0 }}" value="{{ link.title }}" placeholder="e.g., My LinkedIn Profile">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">URL</label>
+                                    <input type="url" class="form-control" name="link_url_{{ forloop.counter0 }}" value="{{ link.url }}" placeholder="https://...">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end justify-content-center pb-3">
+                                    <button type="button" class="remove-entry" onclick="removeLink(this)" title="Remove link"><i class="bi bi-trash3"></i></button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                                <textarea class="form-control" name="link_description_{{ forloop.counter0 }}" rows="2" placeholder="Brief description of this link...">{{ link.description }}</textarea>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="link-item border rounded p-3 mb-3">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Link Type</label>
+                                    <select class="form-select" name="link_type_0">
+                                        <option value="">Select type</option>
+                                        <option value="linkedin">LinkedIn Profile</option>
+                                        <option value="github">GitHub Profile</option>
+                                        <option value="portfolio">Portfolio Website</option>
+                                        <option value="blog">Blog/Personal Site</option>
+                                        <option value="behance">Behance Portfolio</option>
+                                        <option value="dribbble">Dribbble Portfolio</option>
+                                        <option value="twitter">Twitter/X Profile</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Link Title</label>
+                                    <input type="text" class="form-control" name="link_title_0" placeholder="e.g., My LinkedIn Profile">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">URL</label>
+                                    <input type="url" class="form-control" name="link_url_0" placeholder="https://...">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end justify-content-center pb-3">
+                                    <button type="button" class="remove-entry" onclick="removeLink(this)" title="Remove link"><i class="bi bi-trash3"></i></button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                                <textarea class="form-control" name="link_description_0" rows="2" placeholder="Brief description of this link..."></textarea>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" onclick="addLink()">+ Add Link</button>
+                </div>
+            </div>
+
             <!-- Action Buttons -->
             <div class="d-flex justify-content-between">
                 <a href="{% url 'core:student_dashboard' %}" class="btn btn-outline-secondary">← Back to Dashboard</a>
@@ -423,6 +584,8 @@
 let educationCount = {{ education_entries|length|default:1 }};
 let employmentCount = {{ employment_entries|length|default:1 }};
 let skillCount = {{ skill_entries|length|default:1 }};
+let documentCount = {{ profile.documents|length|default:1 }};
+let linkCount = {{ profile.profile_links|length|default:1 }};
 
 // Form submission handling
 document.getElementById('profileEditForm').addEventListener('submit', function(e) {
@@ -557,5 +720,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Document management functions
+function addDocument() {
+    const container = document.getElementById('documentsContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names and clear values
+    const inputs = newItem.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${documentCount}`);
+        input.name = name;
+        input.value = '';
+        
+        // Clear file upload status
+        const fileStatus = input.nextElementSibling;
+        if (fileStatus && fileStatus.classList.contains('text-success')) {
+            fileStatus.remove();
+        }
+    });
+    
+    container.appendChild(newItem);
+    documentCount++;
+}
+
+function removeDocument(button) {
+    const container = document.getElementById('documentsContainer');
+    if (container.children.length > 1) {
+        button.closest('.document-item').remove();
+    }
+}
+
+// Link management functions  
+function addLink() {
+    const container = document.getElementById('linksContainer');
+    const newItem = container.children[0].cloneNode(true);
+    
+    // Update field names and clear values
+    const inputs = newItem.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        const name = input.name.replace(/_\d+$/, `_${linkCount}`);
+        input.name = name;
+        input.value = '';
+    });
+    
+    container.appendChild(newItem);
+    linkCount++;
+}
+
+function removeLink(button) {
+    const container = document.getElementById('linksContainer');
+    if (container.children.length > 1) {
+        button.closest('.link-item').remove();
+    }
+}
 </script>
 {% endblock %}

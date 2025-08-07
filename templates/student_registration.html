@@ -700,23 +700,34 @@ function hideAIAnalysisProgress() {
 
 function generateSkillAnnotations() {
     const skillItems = document.querySelectorAll('.skill-experience-item');
+    let hasAnnotations = false;
     
-    // Use the trigger phrases for demo analysis
+    // Use exact matches for the trigger phrases
     skillItems.forEach((item, index) => {
         const skillNameInput = item.querySelector('input[name^="skill_name_"]');
         const skillDescInput = item.querySelector('textarea[name^="skill_description_"]');
         
         if (skillDescInput && skillDescInput.value) {
-            const lowerValue = skillDescInput.value.toLowerCase();
-            if (lowerValue.includes('python web development')) {
+            const value = skillDescInput.value.toLowerCase().trim();
+            if (value === 'python web development') {
                 showAnnotation(skillDescInput, 'What specific Python frameworks have you used? Django, Flask, FastAPI?', 'info');
-            } else if (lowerValue.includes('javascript')) {
+                hasAnnotations = true;
+            } else if (value === 'javascript') {
                 showAnnotation(skillDescInput, 'Have you worked with React, Vue, or Node.js? Consider mentioning specific projects.', 'info');
-            } else if (lowerValue.includes('database')) {
+                hasAnnotations = true;
+            } else if (value === 'database') {
                 showAnnotation(skillDescInput, 'Which database systems? SQL (MySQL, PostgreSQL) or NoSQL (MongoDB, Redis)?', 'info');
+                hasAnnotations = true;
             }
         }
     });
+    
+    // If no annotations were shown, proceed to next step automatically
+    if (!hasAnnotations) {
+        setTimeout(() => {
+            proceedToNextStep();
+        }, 100);
+    }
 }
 
 // Dynamic form management
@@ -1152,6 +1163,20 @@ function fillDemoProfileUrl() {
     }
 }
 
+// Demo mode function for Step 5 (Skills)
+function fillDemoSkills() {
+    // Fill the first skill field
+    const skillNameField = document.querySelector('input[name="skill_name_0"]');
+    const skillDescField = document.querySelector('textarea[name="skill_description_0"]');
+    const skillLevelField = document.querySelector('select[name="skill_level_0"]');
+    
+    if (skillNameField && skillDescField && skillLevelField) {
+        skillNameField.value = 'Python';
+        skillDescField.value = 'Python web development';
+        skillLevelField.value = 'intermediate';
+    }
+}
+
 function showDemoModeActivated(message = 'Demo Mode Activated!') {
     // Create temporary notification
     const notification = document.createElement('div');
@@ -1184,13 +1209,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Demo mode key combination (Ctrl+Shift+D) - only active on Step 1
+    // Demo mode key combination (Ctrl+Shift+D) - works on different steps
     document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.shiftKey && e.key === 'D' && currentStep === 1) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
             e.preventDefault();
-            fillDemoProfileUrl();
+            if (currentStep === 1) {
+                fillDemoProfileUrl();
+            } else if (currentStep === 5) {
+                fillDemoSkills();
+            }
         }
     });
 });
 </script>
-{% endblock %}
+{% endblock %}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            

@@ -30,13 +30,14 @@
                     <div class="mb-3">
                         <label for="email" class="form-label">Email Address</label>
                         <input type="email" class="form-control" id="email" name="email" required 
-                               placeholder="your.email@mun.ca" value="{{ form.email.value|default:'' }}">
+                               autocomplete="username" placeholder="your.email@mun.ca" value="{{ form.email.value|default:'' }}">
                         <div class="form-text">Use your university email for student accounts</div>
                     </div>
 
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                        <input type="password" class="form-control" id="password" name="password" 
+                               autocomplete="current-password" required>
                     </div>
 
                     <div class="mb-3 form-check">
@@ -69,6 +70,24 @@
 
 {% block extra_js %}
 <script>
+// Demo mode key combination (Ctrl+Shift+D)
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        fillDemoData();
+    }
+});
+
+function fillDemoData() {
+    // Fill form with demo data
+    document.getElementById('email').value = 'mike.chen@mun.ca';
+    document.getElementById('password').value = 'password123';
+    
+    // Trigger email validation
+    const emailEvent = new Event('input', { bubbles: true });
+    document.getElementById('email').dispatchEvent(emailEvent);
+}
+
 document.getElementById('loginForm').addEventListener('submit', function(e) {
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
@@ -98,8 +117,6 @@ document.getElementById('email').addEventListener('input', function() {
     
     if (email && email.includes('@mun.ca')) {
         showAnnotation(emailField, '✓ University email format', 'success');
-    } else if (email && email.includes('@')) {
-        showAnnotation(emailField, 'University email recommended for students', 'info');
     }
 });
 
