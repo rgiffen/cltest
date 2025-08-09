@@ -521,7 +521,7 @@
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{% url 'core:home' %}">
+            <a class="navbar-brand fw-bold" href="{% url 'web:home' %}">
                 <span style="color: var(--mun-main);">Suitable</span><span style="color: var(--mun-navy);">Skills</span>
             </a>
             
@@ -534,23 +534,23 @@
                     {% if user.is_authenticated %}
                         {% if user.user_type == 'student' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'core:student_dashboard' %}">Dashboard</a>
+                                <a class="nav-link" href="{% url 'web:student_dashboard' %}">Dashboard</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'core:browse_projects' %}">Browse Projects</a>
+                                <a class="nav-link" href="{% url 'web:browse_projects' %}">Browse Projects</a>
                             </li>
                         {% elif user.user_type == 'employer' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'core:employer_dashboard' %}">Dashboard</a>
+                                <a class="nav-link" href="{% url 'web:employer_dashboard' %}">Dashboard</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'core:create_project' %}">Post Project</a>
+                                <a class="nav-link" href="{% url 'web:create_project' %}">Post Project</a>
                             </li>
                         {% endif %}
                         
                         {% if user.is_staff %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'core:admin_dashboard' %}">Admin</a>
+                                <a class="nav-link" href="{% url 'web:admin_dashboard' %}">Admin</a>
                             </li>
                         {% endif %}
                     {% endif %}
@@ -564,18 +564,18 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 {% if user.user_type == 'student' %}
-                                    <li><a class="dropdown-item" href="{% url 'core:student_profile' %}">My Profile</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'web:student_profile' %}">My Profile</a></li>
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'core:logout' %}">Logout</a></li>
+                                <li><a class="dropdown-item" href="{% url 'web:logout' %}">Logout</a></li>
                             </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'core:login' %}">Sign In</a>
+                            <a class="nav-link" href="{% url 'web:login' %}">Sign In</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link btn btn-outline-primary px-3 ms-2" href="{% url 'core:register' %}">Get Started</a>
+                            <a class="nav-link btn btn-outline-primary px-3 ms-2" href="{% url 'web:register' %}">Get Started</a>
                         </li>
                     {% endif %}
                 </ul>

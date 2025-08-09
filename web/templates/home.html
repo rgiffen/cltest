@@ -20,7 +20,7 @@
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title">👨‍🎓 Students</h5>
                         <p class="card-text flex-grow-1">Create your profile, showcase your skills, and get matched with exciting projects from local employers.</p>
-                        <a href="{% url 'core:student_register' %}" class="btn btn-primary">Create Student Profile</a>
+                        <a href="{% url 'web:student_register' %}" class="btn btn-primary">Create Student Profile</a>
                     </div>
                 </div>
             </div>
@@ -29,7 +29,7 @@
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title">🏢 Employers</h5>
                         <p class="card-text flex-grow-1">Post your projects and find talented students who match your requirements perfectly.</p>
-                        <a href="{% url 'core:employer_register' %}" class="btn btn-primary">Register as Employer</a>
+                        <a href="{% url 'web:employer_register' %}" class="btn btn-primary">Register as Employer</a>
                     </div>
                 </div>
             </div>
@@ -75,7 +75,7 @@
         </div>
 
         <div class="mt-4 text-center">
-            <p class="text-muted">Already have an account? <a href="{% url 'core:login' %}">Sign in here</a></p>
+            <p class="text-muted">Already have an account? <a href="{% url 'web:login' %}">Sign in here</a></p>
         </div>
     </div>
 </div>

@@ -85,7 +85,7 @@
                 {% endif %}
 
                 <div class="text-center mt-4">
-                    <a href="{% url 'core:logout' %}" class="btn btn-outline-secondary">Sign Out</a>
+                    <a href="{% url 'web:logout' %}" class="btn btn-outline-secondary">Sign Out</a>
                     {% if profile.approval_status != 'rejected' %}
                     <button class="btn btn-primary ms-2" onclick="location.reload()">Check Status</button>
                     {% endif %}

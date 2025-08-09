@@ -112,7 +112,7 @@
                 
                 <!-- Back to Home -->
                 <div class="text-center mt-3">
-                    <a href="{% url 'core:home' %}" class="text-decoration-none">
+                    <a href="{% url 'web:home' %}" class="text-decoration-none">
                         ← Back to Home
                     </a>
                 </div>
@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(form);
         
         // Make API call
-        fetch('{% url "core:create_student_account" %}', {
+        fetch('{% url "web:create_student_account" %}', {
             method: 'POST',
             body: formData,
             headers: {
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Redirect to profile creation after a short delay
                 setTimeout(() => {
-                    window.location.href = '{% url "core:student_profile_setup" %}';
+                    window.location.href = '{% url "web:student_profile_setup" %}';
                 }, 1500);
             } else {
                 // Show error message

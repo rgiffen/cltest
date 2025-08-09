@@ -18,7 +18,7 @@
         <div class="alert alert-info text-center mb-4">
             <!-- Welcome back, {{ user.get_full_name }}!  -->
             <a href="/admin-dashboard/" class="btn btn-sm btn-primary ms-2">Go to Admin Panel</a>
-            <a href="{% url 'core:logout' %}" class="btn btn-sm btn-outline-secondary ms-2">Logout</a>
+            <a href="{% url 'web:logout' %}" class="btn btn-sm btn-outline-secondary ms-2">Logout</a>
         </div>
         {% endif %}
         
@@ -33,7 +33,7 @@
                         <p class="card-text flex-grow-1">
                             Already have an account? Sign in to access your dashboard and manage your profile.
                         </p>
-                        <a href="{% url 'core:login' %}" class="btn btn-primary btn-lg">Sign In</a>
+                        <a href="{% url 'web:login' %}" class="btn btn-primary btn-lg">Sign In</a>
                     </div>
                 </div>
             </div>
@@ -48,7 +48,7 @@
                         <p class="card-text flex-grow-1">
                             New to the platform? Create your account and build your profile to get started.
                         </p>
-                        <a href="{% url 'core:register' %}" class="btn btn-outline-primary btn-lg">Create Account</a>
+                        <a href="{% url 'web:register' %}" class="btn btn-outline-primary btn-lg">Create Account</a>
                     </div>
                 </div>
             </div>

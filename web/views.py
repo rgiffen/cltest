@@ -6,7 +6,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from .models import User, StudentProfile, EmployerProfile, Education, Employment, Skill
+from core.models import User, StudentProfile, EmployerProfile, Education, Employment, Skill
 import json
 import random
 
@@ -23,18 +23,18 @@ def home(request):
                 })
             else:
                 # Regular users without user_type should choose their role
-                return redirect('core:register')
+                return redirect('web:register')
                 
         # Handle regular users with user_type
         if request.user.user_type == 'student':
             try:
                 request.user.student_profile
-                return redirect('core:student_dashboard')
+                return redirect('web:student_dashboard')
             except StudentProfile.DoesNotExist:
                 # User exists but needs to complete profile - redirect to profile setup
-                return redirect('core:student_profile_setup')
+                return redirect('web:student_profile_setup')
         elif request.user.user_type == 'employer':
-            return redirect('core:employer_dashboard')
+            return redirect('web:employer_dashboard')
     
     # Show auth choice for anonymous users
     return render(request, 'auth_choice.html')
@@ -42,7 +42,7 @@ def home(request):
 def register(request):
     # If user is already logged in, redirect to dashboard
     if request.user.is_authenticated:
-        return redirect('core:home')
+        return redirect('web:home')
     
     return render(request, 'register_choice.html')
 
@@ -54,13 +54,13 @@ def student_account_creation(request):
             # Check if they have a complete profile
             try:
                 profile = request.user.student_profile
-                return redirect('core:student_dashboard')
+                return redirect('web:student_dashboard')
             except StudentProfile.DoesNotExist:
                 # User exists but needs to complete profile - redirect to profile setup
-                return redirect('core:student_profile_setup')
+                return redirect('web:student_profile_setup')
         else:
             # Not a student, redirect to appropriate place
-            return redirect('core:home')
+            return redirect('web:home')
     
     return render(request, 'student_account_creation.html')
 
@@ -68,15 +68,15 @@ def student_profile_setup(request):
     """Step 2: Profile setup wizard (after account creation)"""
     # Check if user is authenticated and is a student
     if not request.user.is_authenticated:
-        return redirect('core:student_register')
+        return redirect('web:student_register')
     
     if request.user.user_type != 'student':
-        return redirect('core:home')
+        return redirect('web:home')
     
     # Check if profile already exists
     profile = getattr(request.user, 'student_profile', None)
     if profile is not None:
-        return redirect('core:student_dashboard')
+        return redirect('web:student_dashboard')
     else:
         # Show profile setup wizard
         return render(request, 'student_registration.html')
@@ -307,7 +307,7 @@ def create_student_account(request):
 def employer_register(request):
     # If user is already logged in, redirect to dashboard
     if request.user.is_authenticated:
-        return redirect('core:home')
+        return redirect('web:home')
     
     return render(request, 'employer_registration.html')
 
@@ -384,7 +384,7 @@ def create_employer_account(request):
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('core:home')
+        return redirect('web:home')
     
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -402,11 +402,11 @@ def login_view(request):
                     
                     # Redirect based on user type
                     if auth_user.user_type == 'student':
-                        return redirect('core:student_dashboard')
+                        return redirect('web:student_dashboard')
                     elif auth_user.user_type == 'employer':
-                        return redirect('core:employer_dashboard')
+                        return redirect('web:employer_dashboard')
                     else:
-                        return redirect('core:home')
+                        return redirect('web:home')
                 else:
                     messages.error(request, 'Invalid email or password.')
             except User.DoesNotExist:
@@ -420,7 +420,7 @@ def logout_view(request):
     if request.user.is_authenticated:
         logout(request)
     
-    return redirect('core:home')
+    return redirect('web:home')
 
 def verify_email(request):
     return HttpResponse("Email Verification")
@@ -430,21 +430,21 @@ def student_dashboard(request):
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'student':
         messages.error(request, 'Access denied. Student account required.')
         logout(request)
-        return redirect('core:login')
+        return redirect('web:login')
     
     try:
         profile = request.user.student_profile
         return render(request, 'student_dashboard.html', {'profile': profile})
     except StudentProfile.DoesNotExist:
         messages.info(request, 'Please complete your student profile.')
-        return redirect('core:student_register')
+        return redirect('web:student_register')
 
 @login_required
 def student_profile(request):
     """Edit student profile page"""
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'student':
         messages.error(request, 'Access denied. Student account required.')
-        return redirect('core:login')
+        return redirect('web:login')
     
     try:
         profile = request.user.student_profile
@@ -464,7 +464,7 @@ def student_profile(request):
         
     except StudentProfile.DoesNotExist:
         messages.info(request, 'Please complete your student profile first.')
-        return redirect('core:student_profile_setup')
+        return redirect('web:student_profile_setup')
 
 def update_student_profile(request, profile):
     """Handle student profile updates"""
@@ -588,17 +588,17 @@ def update_student_profile(request, profile):
         profile.profile_links = profile_links
         profile.save()
         
-        return redirect('core:student_dashboard')
+        return redirect('web:student_dashboard')
         
     except Exception as e:
         messages.error(request, f'Error updating profile: {str(e)}')
-        return redirect('core:student_profile')
+        return redirect('web:student_profile')
 
 @login_required
 def employer_dashboard(request):
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'employer':
         messages.error(request, 'Access denied. Employer account required.')
-        return redirect('core:login')
+        return redirect('web:login')
     
     try:
         profile = request.user.employer_profile
@@ -617,13 +617,13 @@ def employer_dashboard(request):
         
     except EmployerProfile.DoesNotExist:
         messages.info(request, 'Please complete your employer registration.')
-        return redirect('core:employer_register')
+        return redirect('web:employer_register')
 
 @login_required
 def create_project(request):
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'employer':
         messages.error(request, 'Access denied. Employer account required.')
-        return redirect('core:login')
+        return redirect('web:login')
     
     try:
         profile = request.user.employer_profile
@@ -631,7 +631,7 @@ def create_project(request):
         # Check if employer is approved
         if profile.approval_status != 'approved':
             messages.warning(request, 'Your account must be approved before you can post projects.')
-            return redirect('core:employer_dashboard')
+            return redirect('web:employer_dashboard')
         
         if request.method == 'POST':
             return process_project_creation(request, profile)
@@ -640,7 +640,7 @@ def create_project(request):
         
     except EmployerProfile.DoesNotExist:
         messages.info(request, 'Please complete your employer registration.')
-        return redirect('core:employer_register')
+        return redirect('web:employer_register')
 
 def process_project_creation(request, profile):
     try:
@@ -667,7 +667,7 @@ def process_project_creation(request, profile):
         preferred_programs = [p.strip() for p in preferred_programs_str.split(',') if p.strip()] if preferred_programs_str else []
         
         # Create project
-        from .models import Project
+        from core.models import Project
         project = Project.objects.create(
             employer=profile,
             title=request.POST.get('title'),
@@ -683,7 +683,7 @@ def process_project_creation(request, profile):
         )
         
         messages.success(request, f'Project "{project.title}" has been posted successfully!')
-        return redirect('core:employer_dashboard')
+        return redirect('web:employer_dashboard')
         
     except Exception as e:
         messages.error(request, f'Error creating project: {str(e)}')
@@ -694,20 +694,20 @@ def project_matches(request, project_id):
     """Show student matches for a specific project"""
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'employer':
         messages.error(request, 'Access denied. Employer account required.')
-        return redirect('core:login')
+        return redirect('web:login')
     
     try:
         profile = request.user.employer_profile
         if profile.approval_status != 'approved':
             messages.warning(request, 'Your account must be approved to view matches.')
-            return redirect('core:employer_dashboard')
+            return redirect('web:employer_dashboard')
         
         # Get project and verify ownership
-        from .models import Project
+        from core.models import Project
         project = Project.objects.get(id=project_id, employer=profile)
         
         # Get matches using our matching algorithm
-        from .matching import get_project_matches
+        from core.matching import get_project_matches
         matches = get_project_matches(project_id)
         
         return render(request, 'project_matches.html', {
@@ -718,23 +718,23 @@ def project_matches(request, project_id):
         
     except Project.DoesNotExist:
         messages.error(request, 'Project not found or you do not have permission to view it.')
-        return redirect('core:employer_dashboard')
+        return redirect('web:employer_dashboard')
     except EmployerProfile.DoesNotExist:
         messages.info(request, 'Please complete your employer registration.')
-        return redirect('core:employer_register')
+        return redirect('web:employer_register')
 
 @login_required
 def browse_projects(request):
     """Show projects that match the current student"""
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'student':
         messages.error(request, 'Access denied. Student account required.')
-        return redirect('core:login')
+        return redirect('web:login')
     
     try:
         student_profile = request.user.student_profile
         
         # Get project matches using our matching algorithm
-        from .matching import get_student_projects
+        from core.matching import get_student_projects
         project_matches = get_student_projects(student_profile)
         
         return render(request, 'browse_projects.html', {
@@ -744,7 +744,7 @@ def browse_projects(request):
         
     except StudentProfile.DoesNotExist:
         messages.info(request, 'Please complete your student profile.')
-        return redirect('core:student_register')
+        return redirect('web:student_register')
 
 @login_required
 def employer_projects(request):

@@ -270,14 +270,14 @@
                             <li>Make sure your profile is complete and up-to-date</li>
                         </ul>
                     </div>
-                    <a href="{% url 'core:student_profile' %}" class="btn btn-primary mt-3">Update My Profile</a>
+                    <a href="{% url 'web:student_profile' %}" class="btn btn-primary mt-3">Update My Profile</a>
                 </div>
             {% endif %}
         </div>
         
         {% if project_matches %}
         <div class="mt-4 text-center">
-            <a href="{% url 'core:student_dashboard' %}" class="btn btn-outline-secondary">← Back to Dashboard</a>
+            <a href="{% url 'web:student_dashboard' %}" class="btn btn-outline-secondary">← Back to Dashboard</a>
             <button class="btn btn-primary ms-2" onclick="refreshProjects()">Refresh Matches</button>
         </div>
         {% endif %}

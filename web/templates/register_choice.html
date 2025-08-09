@@ -27,7 +27,7 @@
                             <li>✓ Smart project matching</li>
                             <li>✓ Availability management</li>
                         </ul>
-                        <a href="{% url 'core:student_register' %}" class="btn btn-primary btn-lg">Register as Student</a>
+                        <a href="{% url 'web:student_register' %}" class="btn btn-primary btn-lg">Register as Student</a>
                         <small class="text-muted mt-2">Requires @mun.ca email address</small>
                     </div>
                 </div>
@@ -49,7 +49,7 @@
                             <li>✓ Project management tools</li>
                             <li>✓ Admin-approved accounts</li>
                         </ul>
-                        <a href="{% url 'core:employer_register' %}" class="btn btn-secondary btn-lg">Register as Employer</a>
+                        <a href="{% url 'web:employer_register' %}" class="btn btn-secondary btn-lg">Register as Employer</a>
                         <small class="text-muted mt-2">Subject to admin approval</small>
                     </div>
                 </div>
@@ -57,7 +57,7 @@
         </div>
 
         <div class="text-center mt-4">
-            <p class="text-muted">Already have an account? <a href="{% url 'core:login' %}">Sign in here</a></p>
+            <p class="text-muted">Already have an account? <a href="{% url 'web:login' %}">Sign in here</a></p>
         </div>
     </div>
 </div>

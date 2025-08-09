@@ -1107,7 +1107,7 @@ function submitForm() {
     submitBtn.textContent = 'Creating Profile...';
     submitBtn.disabled = true;
     
-    fetch('{% url "core:process_student_registration" %}', {
+    fetch('{% url "web:process_student_registration" %}', {
         method: 'POST',
         body: formData,
         headers: {
