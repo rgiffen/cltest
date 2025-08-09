@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 
 app_name = 'web'
@@ -15,18 +16,18 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('verify/', views.verify_email, name='verify_email'),
-    
+
     # Student dashboard and profile
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
     path('student/profile/', views.student_profile, name='student_profile'),
     path('student/projects/', views.browse_projects, name='browse_projects'),
-    
+
     # Employer dashboard
     path('employer/dashboard/', views.employer_dashboard, name='employer_dashboard'),
     path('employer/projects/', views.employer_projects, name='employer_projects'),
     path('employer/projects/create/', views.create_project, name='create_project'),
     path('employer/projects/<int:project_id>/matches/', views.project_matches, name='project_matches'),
-    
+
     # Admin
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin/approve-employer/<int:employer_id>/', views.approve_employer, name='approve_employer'),

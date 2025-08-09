@@ -1,6 +1,7 @@
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
+
 
 @csrf_exempt
 def create_user(request):
@@ -59,11 +60,11 @@ def validate_responses(request):
     if request.method == 'POST':
         field_name = request.POST.get('field_name', '')
         field_value = request.POST.get('field_value', '')
-        
+
         # AI validation logic based on field and value
         validation_result = get_ai_validation(field_name, field_value)
         return JsonResponse({"validation": validation_result})
-    
+
     return JsonResponse({"validation": {"status": "valid", "suggestions": []}})
 
 @csrf_exempt
@@ -72,10 +73,10 @@ def scan_webpage(request):
     if request.method == 'POST':
         webpage_url = request.POST.get('webpage_url', '')
         scan_type = request.POST.get('scan_type', 'employer')  # 'employer' or 'student'
-        
+
         if scan_type == 'student':
             return scan_student_webpage(webpage_url)
-        
+
         # Employer webpage scanning (existing logic)
         if 'techcorp' in webpage_url.lower() or 'technology' in webpage_url.lower():
             return JsonResponse({
@@ -90,7 +91,7 @@ def scan_webpage(request):
             })
         elif 'creative' in webpage_url.lower() or 'design' in webpage_url.lower():
             return JsonResponse({
-                "status": "success", 
+                "status": "success",
                 "extracted_data": {
                     "company_name": "Atlantic Creative Studio",
                     "industry": "design",
@@ -104,7 +105,7 @@ def scan_webpage(request):
                 "status": "success",
                 "extracted_data": {
                     "company_name": "Atlantic Health Services",
-                    "industry": "healthcare", 
+                    "industry": "healthcare",
                     "company_description": "Atlantic Health Services provides comprehensive healthcare solutions across the Atlantic provinces. We focus on improving patient outcomes through innovative technology and compassionate care.",
                     "company_location": "Moncton, NB",
                     "website": webpage_url
@@ -122,13 +123,13 @@ def scan_webpage(request):
                     "website": webpage_url
                 }
             })
-    
+
     return JsonResponse({"status": "error", "message": "Invalid request"})
 
 def scan_student_webpage(webpage_url):
     """Simulate student webpage/profile scanning"""
     url_lower = webpage_url.lower()
-    
+
     # LinkedIn profile simulation
     if 'linkedin.com' in url_lower:
         if 'sarah' in url_lower or 'chen' in url_lower:
@@ -136,7 +137,7 @@ def scan_student_webpage(webpage_url):
                 "status": "success",
                 "extracted_data": {
                     "first_name": "Sarah",
-                    "last_name": "Chen", 
+                    "last_name": "Chen",
                     "email": "sarah.chen@mun.ca",
                     "phone": "(709) 123-4567",
                     "academic_year": "junior",
@@ -168,7 +169,7 @@ def scan_student_webpage(webpage_url):
                 "extracted_data": {
                     "first_name": "John",
                     "last_name": "Doe",
-                    "email": "john.doe@mun.ca", 
+                    "email": "john.doe@mun.ca",
                     "academic_year": "senior",
                     "program": "Engineering",
                     "skills_data": [
@@ -177,7 +178,7 @@ def scan_student_webpage(webpage_url):
                     ]
                 }
             })
-    
+
     # GitHub profile simulation
     elif 'github.com' in url_lower:
         return JsonResponse({
@@ -195,11 +196,11 @@ def scan_student_webpage(webpage_url):
                 ]
             }
         })
-    
+
     # Personal portfolio website simulation
     elif 'portfolio' in url_lower or 'personal' in url_lower:
         return JsonResponse({
-            "status": "success", 
+            "status": "success",
             "extracted_data": {
                 "first_name": "Emma",
                 "last_name": "Designer",
@@ -214,7 +215,7 @@ def scan_student_webpage(webpage_url):
                 ]
             }
         })
-    
+
     # Generic fallback for demo
     else:
         return JsonResponse({
@@ -223,7 +224,7 @@ def scan_student_webpage(webpage_url):
                 "first_name": "Student",
                 "last_name": "Profile",
                 "email": "student@mun.ca",
-                "academic_year": "junior", 
+                "academic_year": "junior",
                 "program": "General Studies",
                 "skills_data": [
                     {"name": "Communication", "level": "intermediate", "description": "Strong written and verbal communication skills"}
@@ -234,40 +235,40 @@ def scan_student_webpage(webpage_url):
 def get_ai_validation(field_name, value):
     """Simulate AI validation with contextual responses"""
     value = value.strip().lower()
-    
+
     # # Email validation
     # if 'email' in field_name:
     #     if value and '@mun.ca' in value:
     #         return {"message": "✓ University email detected", "type": "success"}
     #     elif value and '@' in value:
     #         return {"message": "Consider using your university email", "type": "info"}
-    
+
     # # Name validation
     # if 'name' in field_name:
     #     if value and len(value.split()) >= 2:
     #         return {"message": "✓ Looks good!", "type": "success"}
     #     elif value:
     #         return {"message": "Consider including your full name", "type": "info"}
-    
+
     # # Program validation
     # if 'program' in field_name:
     #     if 'computer' in value or 'engineering' in value:
     #         return {"message": "Great! I can suggest relevant skills", "type": "info"}
     #     elif 'science' in value:
     #         return {"message": "STEM programs have high demand", "type": "success"}
-    
+
     # # Academic year validation
     # if 'academic' in field_name:
     #     if value in ['junior', 'senior', 'graduate']:
     #         return {"message": "✓ Good experience level for projects", "type": "success"}
-    
+
     # # Phone validation
     # if 'phone' in field_name:
     #     if '709' in value:
     #         return {"message": "✓ Newfoundland number detected", "type": "success"}
     #     elif value and len(value) >= 10:
     #         return {"message": "✓ Valid phone format", "type": "success"}
-    
+
     # # Skills validation
     # if 'skill' in field_name:
     #     high_demand_skills = ['python', 'javascript', 'react', 'sql', 'java', 'aws', 'docker']
@@ -275,20 +276,20 @@ def get_ai_validation(field_name, value):
     #         return {"message": "High demand skill in current market", "type": "success"}
     #     elif value:
     #         return {"message": "Consider adding specific frameworks or tools", "type": "info"}
-    
+
     # # Availability validation
     # if 'availability' in field_name and len(value) > 50:
     #     return {"message": "✓ Detailed availability info", "type": "success"}
     # elif 'availability' in field_name and value:
     #     return {"message": "Consider adding more details", "type": "info"}
-    
+
     # # Career goals validation
     # if 'career' in field_name and value:
     #     if len(value) > 100:
     #         return {"message": "✓ Well-defined career goals", "type": "success"}
     #     else:
     #         return {"message": "Consider expanding on your goals", "type": "info"}
-    
+
     # # Password validation
     # if 'password' in field_name:
     #     if len(value) >= 12:
@@ -297,30 +298,30 @@ def get_ai_validation(field_name, value):
     #         return {"message": "Good password length", "type": "info"}
     #     elif value:
     #         return {"message": "Password should be at least 8 characters", "type": "warning"}
-    
+
     # # Confirm password validation
     # if 'confirm' in field_name and 'password' in field_name:
     #     return {"message": "Make sure passwords match", "type": "info"}
-    
+
     # # Company name validation
     # if 'company' in field_name and 'name' in field_name:
     #     if len(value) > 3:
     #         return {"message": "✓ Company name looks good", "type": "success"}
     #     elif value:
     #         return {"message": "Company name seems short", "type": "info"}
-    
+
     # # Website validation
     # if 'website' in field_name:
     #     if value and ('http' in value or 'www' in value):
     #         return {"message": "✓ Valid website format", "type": "success"}
     #     elif value:
     #         return {"message": "Include http:// or https://", "type": "info"}
-    
+
     # # Industry validation
     # if 'industry' in field_name:
     #     if value:
     #         return {"message": "✓ Industry selected", "type": "success"}
-    
+
     # # Company description validation
     # if 'company_description' in field_name or 'description' in field_name:
     #     if len(value) > 150:
@@ -329,5 +330,5 @@ def get_ai_validation(field_name, value):
     #         return {"message": "Good description, consider adding more detail", "type": "info"}
     #     elif value:
     #         return {"message": "Add more details about your company", "type": "info"}
-    
+
     return None  # No validation message

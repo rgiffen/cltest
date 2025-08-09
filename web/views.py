@@ -1,14 +1,23 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse, JsonResponse
-from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.decorators import login_required
-from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib import messages
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-from core.models import User, StudentProfile, EmployerProfile, Education, Employment, Skill
 import json
 import random
+
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect, render
+from django.views.decorators.http import require_http_methods
+
+from core.models import (
+    Education,
+    EmployerProfile,
+    Employment,
+    Skill,
+    StudentProfile,
+    User,
+)
+
 
 def home(request):
     # If user is already logged in, redirect to appropriate dashboard
@@ -24,18 +33,18 @@ def home(request):
             else:
                 # Regular users without user_type should choose their role
                 return redirect('web:register')
-                
+
         # Handle regular users with user_type
         if request.user.user_type == 'student':
             try:
-                request.user.student_profile
+                request.user.student_profile  # Check if profile exists  # noqa: B018
                 return redirect('web:student_dashboard')
             except StudentProfile.DoesNotExist:
                 # User exists but needs to complete profile - redirect to profile setup
                 return redirect('web:student_profile_setup')
         elif request.user.user_type == 'employer':
             return redirect('web:employer_dashboard')
-    
+
     # Show auth choice for anonymous users
     return render(request, 'auth_choice.html')
 
@@ -43,7 +52,7 @@ def register(request):
     # If user is already logged in, redirect to dashboard
     if request.user.is_authenticated:
         return redirect('web:home')
-    
+
     return render(request, 'register_choice.html')
 
 def student_account_creation(request):
@@ -53,7 +62,7 @@ def student_account_creation(request):
         if request.user.user_type == 'student':
             # Check if they have a complete profile
             try:
-                profile = request.user.student_profile
+                request.user.student_profile  # Check if profile exists  # noqa: B018
                 return redirect('web:student_dashboard')
             except StudentProfile.DoesNotExist:
                 # User exists but needs to complete profile - redirect to profile setup
@@ -61,7 +70,7 @@ def student_account_creation(request):
         else:
             # Not a student, redirect to appropriate place
             return redirect('web:home')
-    
+
     return render(request, 'student_account_creation.html')
 
 def student_profile_setup(request):
@@ -69,10 +78,10 @@ def student_profile_setup(request):
     # Check if user is authenticated and is a student
     if not request.user.is_authenticated:
         return redirect('web:student_register')
-    
+
     if request.user.user_type != 'student':
         return redirect('web:home')
-    
+
     # Check if profile already exists
     profile = getattr(request.user, 'student_profile', None)
     if profile is not None:
@@ -85,10 +94,10 @@ def student_profile_setup(request):
 def process_student_registration(request):
     """Handle the profile creation steps (after account is created)"""
     current_step = int(request.POST.get('current_step', 1))
-    
+
     if current_step == 8:  # Final step - create complete profile
         return create_student_profile(request)
-    
+
     # For other steps, just return success (client-side navigation)
     return JsonResponse({'status': 'success', 'step': current_step})
 
@@ -101,27 +110,27 @@ def create_student_profile(request):
                 'status': 'error',
                 'message': 'Invalid session. Please start over.'
             })
-        
+
         user = request.user
-        
+
         # Check if profile already exists
         if hasattr(user, 'student_profile'):
             return JsonResponse({
                 'status': 'error',
                 'message': 'Profile already exists.'
             })
-        
+
         # Collect external links
         external_links = {}
         if request.POST.get('linkedin_url'):
             external_links['linkedin'] = request.POST.get('linkedin_url')
         if request.POST.get('github_url'):
-            external_links['github'] = request.POST.get('github_url')  
+            external_links['github'] = request.POST.get('github_url')
         if request.POST.get('portfolio_url'):
             external_links['portfolio'] = request.POST.get('portfolio_url')
         if request.POST.get('other_url'):
             external_links['other'] = request.POST.get('other_url')
-        
+
         # Create student profile
         profile = StudentProfile.objects.create(
             user=user,
@@ -139,7 +148,7 @@ def create_student_profile(request):
             external_links=external_links,
             profile_complete=True
         )
-        
+
         # Create education entries
         education_count = 0
         while f'education_institution_{education_count}' in request.POST:
@@ -156,7 +165,7 @@ def create_student_profile(request):
                     is_current=bool(request.POST.get(f'education_current_{education_count}'))
                 )
             education_count += 1
-        
+
         # Create employment entries
         employment_count = 0
         while f'employment_company_{employment_count}' in request.POST:
@@ -172,7 +181,7 @@ def create_student_profile(request):
                     is_current=bool(request.POST.get(f'employment_current_{employment_count}'))
                 )
             employment_count += 1
-        
+
         # Create skill entries
         skill_count = 0
         while f'skill_name_{skill_count}' in request.POST:
@@ -185,7 +194,7 @@ def create_student_profile(request):
                     experience_description=request.POST.get(f'skill_description_{skill_count}', '')
                 )
             skill_count += 1
-        
+
         # Create documents entries
         documents = []
         document_count = 0
@@ -201,7 +210,7 @@ def create_student_profile(request):
                 }
                 documents.append(document_entry)
             document_count += 1
-        
+
         # Create profile links entries
         profile_links = []
         link_count = 0
@@ -217,18 +226,18 @@ def create_student_profile(request):
                 }
                 profile_links.append(link_entry)
             link_count += 1
-        
+
         # Update profile with documents and links
         profile.documents = documents
         profile.profile_links = profile_links
         profile.save()
-        
+
         return JsonResponse({
-            'status': 'success', 
+            'status': 'success',
             'message': 'Profile created successfully!',
             'redirect': '/student/dashboard/'
         })
-        
+
     except Exception as e:
         return JsonResponse({
             'status': 'error',
@@ -245,41 +254,41 @@ def create_student_account(request):
         confirm_password = request.POST.get('confirm_password', '')
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
-        
+
         # Validate @mun.ca email
         if not email.endswith('@mun.ca'):
             return JsonResponse({
                 'status': 'error',
                 'message': 'Only @mun.ca email addresses are accepted for student accounts.'
             })
-        
+
         # Check if email already exists
         if User.objects.filter(email=email).exists():
             return JsonResponse({
                 'status': 'error',
                 'message': 'An account with this email already exists. Please sign in instead.'
             })
-        
+
         # Validate required fields
         if not all([email, password, first_name, last_name]):
             return JsonResponse({
                 'status': 'error',
                 'message': 'All fields are required.'
             })
-        
+
         # Validate password
         if len(password) < 8:
             return JsonResponse({
                 'status': 'error',
                 'message': 'Password must be at least 8 characters long.'
             })
-        
+
         if password != confirm_password:
             return JsonResponse({
                 'status': 'error',
                 'message': 'Passwords do not match.'
             })
-        
+
         # Create user account
         user = User.objects.create_user(
             username=email,  # Use email as username
@@ -289,15 +298,15 @@ def create_student_account(request):
             password=password,
             user_type='student'
         )
-        
+
         # Log the user in
         login(request, user)
-        
+
         return JsonResponse({
-            'status': 'success', 
+            'status': 'success',
             'message': 'Account created successfully!',
         })
-        
+
     except Exception as e:
         return JsonResponse({
             'status': 'error',
@@ -308,16 +317,16 @@ def employer_register(request):
     # If user is already logged in, redirect to dashboard
     if request.user.is_authenticated:
         return redirect('web:home')
-    
+
     return render(request, 'employer_registration.html')
 
 @require_http_methods(["POST"])
 def process_employer_registration(request):
     current_step = int(request.POST.get('current_step', 1))
-    
+
     if current_step == 3:  # Final step - create employer account
         return create_employer_account(request)
-    
+
     # For other steps, just return success (client-side navigation)
     return JsonResponse({'status': 'success', 'step': current_step})
 
@@ -330,23 +339,23 @@ def create_employer_account(request):
                 'status': 'error',
                 'message': 'An account with this email already exists. Please sign in instead.'
             })
-        
+
         # Get and validate password
         password = request.POST.get('password')
         confirm_password = request.POST.get('confirm_password')
-        
+
         if not password or len(password) < 8:
             return JsonResponse({
                 'status': 'error',
                 'message': 'Password must be at least 8 characters long.'
             })
-        
+
         if password != confirm_password:
             return JsonResponse({
                 'status': 'error',
                 'message': 'Passwords do not match.'
             })
-        
+
         # Create user
         user = User.objects.create_user(
             username=email,  # Use email as username
@@ -356,9 +365,9 @@ def create_employer_account(request):
             password=password,
             user_type='employer'
         )
-        
+
         # Create employer profile
-        profile = EmployerProfile.objects.create(
+        EmployerProfile.objects.create(
             user=user,
             company_name=request.POST.get('company_name'),
             industry=request.POST.get('industry'),
@@ -370,12 +379,12 @@ def create_employer_account(request):
             contact_phone=request.POST.get('contact_phone', ''),
             approval_status='pending'  # Requires admin approval
         )
-        
+
         return JsonResponse({
-            'status': 'success', 
+            'status': 'success',
             'message': 'Your registration has been submitted for review. You will receive an email notification once approved.',
         })
-        
+
     except Exception as e:
         return JsonResponse({
             'status': 'error',
@@ -385,21 +394,21 @@ def create_employer_account(request):
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('web:home')
-    
+
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
-        
+
         if email and password:
             # Try to find user by email (which is used as username)
             try:
                 user = User.objects.get(email=email)
                 # Authenticate using username and password
                 auth_user = authenticate(request, username=user.username, password=password)
-                
+
                 if auth_user:
                     login(request, auth_user)
-                    
+
                     # Redirect based on user type
                     if auth_user.user_type == 'student':
                         return redirect('web:student_dashboard')
@@ -413,13 +422,13 @@ def login_view(request):
                 messages.error(request, 'No account found with this email address.')
         else:
             messages.error(request, 'Please provide both email and password.')
-    
+
     return render(request, 'login.html')
 
 def logout_view(request):
     if request.user.is_authenticated:
         logout(request)
-    
+
     return redirect('web:home')
 
 def verify_email(request):
@@ -431,7 +440,7 @@ def student_dashboard(request):
         messages.error(request, 'Access denied. Student account required.')
         logout(request)
         return redirect('web:login')
-    
+
     try:
         profile = request.user.student_profile
         return render(request, 'student_dashboard.html', {'profile': profile})
@@ -445,13 +454,13 @@ def student_profile(request):
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'student':
         messages.error(request, 'Access denied. Student account required.')
         return redirect('web:login')
-    
+
     try:
         profile = request.user.student_profile
-        
+
         if request.method == 'POST':
             return update_student_profile(request, profile)
-        
+
         # GET request - show the edit form
         context = {
             'profile': profile,
@@ -461,7 +470,7 @@ def student_profile(request):
             'skill_entries': profile.skills.all(),
         }
         return render(request, 'student_profile_edit.html', context)
-        
+
     except StudentProfile.DoesNotExist:
         messages.info(request, 'Please complete your student profile first.')
         return redirect('web:student_profile_setup')
@@ -475,18 +484,18 @@ def update_student_profile(request, profile):
         user.last_name = request.POST.get('last_name', user.last_name)
         user.email = request.POST.get('email', user.email)
         user.save()
-        
+
         # Update external links
         external_links = {}
         if request.POST.get('linkedin_url'):
             external_links['linkedin'] = request.POST.get('linkedin_url')
         if request.POST.get('github_url'):
-            external_links['github'] = request.POST.get('github_url')  
+            external_links['github'] = request.POST.get('github_url')
         if request.POST.get('portfolio_url'):
             external_links['portfolio'] = request.POST.get('portfolio_url')
         if request.POST.get('other_url'):
             external_links['other'] = request.POST.get('other_url')
-        
+
         # Update profile information
         profile.phone = request.POST.get('phone', '')
         profile.academic_year = request.POST.get('academic_year', '')
@@ -501,7 +510,7 @@ def update_student_profile(request, profile):
         profile.availability = request.POST.getlist('availability')
         profile.external_links = external_links
         profile.save()
-        
+
         # Update education entries (delete existing and recreate)
         profile.education.all().delete()
         education_count = 0
@@ -519,7 +528,7 @@ def update_student_profile(request, profile):
                     is_current=bool(request.POST.get(f'education_current_{education_count}'))
                 )
             education_count += 1
-        
+
         # Update employment entries (delete existing and recreate)
         profile.employment.all().delete()
         employment_count = 0
@@ -536,7 +545,7 @@ def update_student_profile(request, profile):
                     is_current=bool(request.POST.get(f'employment_current_{employment_count}'))
                 )
             employment_count += 1
-        
+
         # Update skill entries (delete existing and recreate)
         profile.skills.all().delete()
         skill_count = 0
@@ -550,7 +559,7 @@ def update_student_profile(request, profile):
                     experience_description=request.POST.get(f'skill_description_{skill_count}', '')
                 )
             skill_count += 1
-        
+
         # Update documents entries
         documents = []
         document_count = 0
@@ -566,7 +575,7 @@ def update_student_profile(request, profile):
                 }
                 documents.append(document_entry)
             document_count += 1
-        
+
         # Update profile links entries
         profile_links = []
         link_count = 0
@@ -582,14 +591,14 @@ def update_student_profile(request, profile):
                 }
                 profile_links.append(link_entry)
             link_count += 1
-        
+
         # Update profile with documents and links
         profile.documents = documents
         profile.profile_links = profile_links
         profile.save()
-        
+
         return redirect('web:student_dashboard')
-        
+
     except Exception as e:
         messages.error(request, f'Error updating profile: {str(e)}')
         return redirect('web:student_profile')
@@ -599,22 +608,22 @@ def employer_dashboard(request):
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'employer':
         messages.error(request, 'Access denied. Employer account required.')
         return redirect('web:login')
-    
+
     try:
         profile = request.user.employer_profile
-        
+
         # Check approval status
         if profile.approval_status != 'approved':
             return render(request, 'employer_pending.html', {'profile': profile})
-        
+
         # Get projects for approved employers
         projects = profile.projects.all().order_by('-created_at')
-        
+
         return render(request, 'employer_dashboard.html', {
             'profile': profile,
             'projects': projects
         })
-        
+
     except EmployerProfile.DoesNotExist:
         messages.info(request, 'Please complete your employer registration.')
         return redirect('web:employer_register')
@@ -624,20 +633,20 @@ def create_project(request):
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'employer':
         messages.error(request, 'Access denied. Employer account required.')
         return redirect('web:login')
-    
+
     try:
         profile = request.user.employer_profile
-        
+
         # Check if employer is approved
         if profile.approval_status != 'approved':
             messages.warning(request, 'Your account must be approved before you can post projects.')
             return redirect('web:employer_dashboard')
-        
+
         if request.method == 'POST':
             return process_project_creation(request, profile)
-        
+
         return render(request, 'create_project.html', {'profile': profile})
-        
+
     except EmployerProfile.DoesNotExist:
         messages.info(request, 'Please complete your employer registration.')
         return redirect('web:employer_register')
@@ -652,7 +661,7 @@ def process_project_creation(request, profile):
             if skill:
                 required_skills.append(skill)
             skill_index += 1
-        
+
         # Collect preferred skills
         preferred_skills = []
         skill_index = 0
@@ -661,11 +670,11 @@ def process_project_creation(request, profile):
             if skill:
                 preferred_skills.append(skill)
             skill_index += 1
-        
+
         # Handle preferred programs
         preferred_programs_str = request.POST.get('preferred_programs', '')
         preferred_programs = [p.strip() for p in preferred_programs_str.split(',') if p.strip()] if preferred_programs_str else []
-        
+
         # Create project
         from core.models import Project
         project = Project.objects.create(
@@ -681,10 +690,10 @@ def process_project_creation(request, profile):
             preferred_programs=preferred_programs,
             is_active=True
         )
-        
+
         messages.success(request, f'Project "{project.title}" has been posted successfully!')
         return redirect('web:employer_dashboard')
-        
+
     except Exception as e:
         messages.error(request, f'Error creating project: {str(e)}')
         return render(request, 'create_project.html', {'profile': profile})
@@ -695,27 +704,27 @@ def project_matches(request, project_id):
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'employer':
         messages.error(request, 'Access denied. Employer account required.')
         return redirect('web:login')
-    
+
     try:
         profile = request.user.employer_profile
         if profile.approval_status != 'approved':
             messages.warning(request, 'Your account must be approved to view matches.')
             return redirect('web:employer_dashboard')
-        
+
         # Get project and verify ownership
         from core.models import Project
         project = Project.objects.get(id=project_id, employer=profile)
-        
+
         # Get matches using our matching algorithm
         from core.matching import get_project_matches
         matches = get_project_matches(project_id)
-        
+
         return render(request, 'project_matches.html', {
             'project': project,
             'matches': matches,
             'profile': profile
         })
-        
+
     except Project.DoesNotExist:
         messages.error(request, 'Project not found or you do not have permission to view it.')
         return redirect('web:employer_dashboard')
@@ -729,19 +738,19 @@ def browse_projects(request):
     if not hasattr(request.user, 'user_type') or request.user.user_type != 'student':
         messages.error(request, 'Access denied. Student account required.')
         return redirect('web:login')
-    
+
     try:
         student_profile = request.user.student_profile
-        
+
         # Get project matches using our matching algorithm
         from core.matching import get_student_projects
         project_matches = get_student_projects(student_profile)
-        
+
         return render(request, 'browse_projects.html', {
             'student_profile': student_profile,
             'project_matches': project_matches
         })
-        
+
     except StudentProfile.DoesNotExist:
         messages.info(request, 'Please complete your student profile.')
         return redirect('web:student_register')
@@ -753,31 +762,30 @@ def employer_projects(request):
 @staff_member_required
 def admin_dashboard(request):
     """Admin dashboard with employer approval management and trend analytics"""
-    from .models import EmployerProfile, Project, StudentProfile
-    from django.db.models import Count
-    from django.db.models.functions import TruncDate
     from datetime import datetime, timedelta
-    
+
+    from django.db.models import Count
+
+    from .models import EmployerProfile, Project, StudentProfile
+
     # Get pending employer approvals
     pending_employers = EmployerProfile.objects.filter(approval_status='pending').order_by('-created_at')
     approved_employers = EmployerProfile.objects.filter(approval_status='approved').order_by('-created_at')[:5]
-    
+
     # Get platform statistics
     total_students = StudentProfile.objects.count()
     total_employers = EmployerProfile.objects.count()
     total_projects = Project.objects.count()
     active_projects = Project.objects.filter(is_active=True).count()
-    
+
     # Generate demo trend data for the last 30 days
-    import json
-    import random
     from datetime import date
-    
+
     def generate_demo_trend_data():
         """Generate realistic demo data for the last 30 days"""
         thirty_days_ago = datetime.now() - timedelta(days=30)
         dates = [(thirty_days_ago + timedelta(days=i)).date() for i in range(30)]
-        
+
         # Generate realistic trends with some variability but always increasing overall
         def generate_trend(base_rate, growth_factor, variability=0.3):
             trend = []
@@ -785,63 +793,63 @@ def admin_dashboard(request):
             for i, day in enumerate(dates):
                 # Base growth with some randomness but ensure minimum growth
                 daily_count = int(cumulative_base + random.uniform(0, variability))
-                
+
                 # Add some realistic patterns (weekends typically lower, some random spikes)
                 if day.weekday() >= 5:  # Weekend - reduce but don't go below previous trend
                     daily_count = max(daily_count, int(daily_count * 0.7))
                 elif random.random() < 0.1:  # 10% chance of spike
                     daily_count = int(daily_count * 1.5)
-                
+
                 # Ensure we never decrease from the overall trend
                 if i > 0 and len(trend) > 0:
                     daily_count = max(daily_count, trend[-1]['count'])
-                
+
                 # Always add data points to show consistent growth
                 trend.append({
                     'date': day.strftime('%Y-%m-%d'),
                     'count': daily_count
                 })
-                
+
                 # Gradually increase the baseline for next day
                 cumulative_base += growth_factor
-                
+
             return trend
-        
+
         return {
             'students': generate_trend(base_rate=2.5, growth_factor=0.15, variability=1.2),  # Highest volume
-            'employers': generate_trend(base_rate=0.8, growth_factor=0.05, variability=0.4), # Medium volume  
+            'employers': generate_trend(base_rate=0.8, growth_factor=0.05, variability=0.4), # Medium volume
             'projects': generate_trend(base_rate=1.2, growth_factor=0.08, variability=0.6)   # Between students and employers
         }
-    
+
     # Get real data first, then supplement with demo data for better visualization
     thirty_days_ago = datetime.now() - timedelta(days=30)
-    
+
     # Get actual data (might be sparse for new installations)
     real_student_trend = StudentProfile.objects.filter(
         created_at__gte=thirty_days_ago
     ).extra({'date': 'date(created_at)'}).values('date').annotate(
         count=Count('id')
     ).order_by('date')
-    
+
     real_employer_trend = EmployerProfile.objects.filter(
         created_at__gte=thirty_days_ago
     ).extra({'date': 'date(created_at)'}).values('date').annotate(
         count=Count('id')
     ).order_by('date')
-    
+
     real_project_trend = Project.objects.filter(
         created_at__gte=thirty_days_ago
     ).extra({'date': 'date(created_at)'}).values('date').annotate(
         count=Count('id')
     ).order_by('date')
-    
+
     # Use demo data if we don't have enough real data for a good demo
     total_real_data_points = len(real_student_trend) + len(real_employer_trend) + len(real_project_trend)
-    
+
     if total_real_data_points < 10:  # If we have sparse real data, use demo data
         demo_data = generate_demo_trend_data()
         student_trend_data = demo_data['students']
-        employer_trend_data = demo_data['employers'] 
+        employer_trend_data = demo_data['employers']
         project_trend_data = demo_data['projects']
     else:
         # Convert real data to the same format
@@ -853,11 +861,11 @@ def admin_dashboard(request):
                     'count': item['count']
                 })
             return data
-            
+
         student_trend_data = format_real_trend_data(real_student_trend)
         employer_trend_data = format_real_trend_data(real_employer_trend)
         project_trend_data = format_real_trend_data(real_project_trend)
-    
+
     context = {
         'pending_employers': pending_employers,
         'approved_employers': approved_employers,
@@ -874,7 +882,7 @@ def admin_dashboard(request):
             'projects': json.dumps(project_trend_data)
         }
     }
-    
+
     return render(request, 'admin_dashboard.html', context)
 
 @staff_member_required
@@ -885,10 +893,10 @@ def approve_employer(request, employer_id):
         employer = EmployerProfile.objects.get(id=employer_id, approval_status='pending')
         employer.approval_status = 'approved'
         employer.save()
-        
+
         messages.success(request, f'Employer "{employer.company_name}" has been approved.')
         return JsonResponse({'status': 'success', 'message': 'Employer approved successfully'})
-        
+
     except EmployerProfile.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Employer not found or already processed'}, status=404)
     except Exception as e:
@@ -901,14 +909,14 @@ def reject_employer(request, employer_id):
     try:
         employer = EmployerProfile.objects.get(id=employer_id, approval_status='pending')
         reason = request.POST.get('reason', 'No reason provided')
-        
+
         employer.approval_status = 'rejected'
         employer.rejection_reason = reason
         employer.save()
-        
+
         messages.success(request, f'Employer "{employer.company_name}" has been rejected.')
         return JsonResponse({'status': 'success', 'message': 'Employer rejected'})
-        
+
     except EmployerProfile.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Employer not found or already processed'}, status=404)
     except Exception as e:

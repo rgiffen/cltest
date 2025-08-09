@@ -1,8 +1,17 @@
-from django.core.management.base import BaseCommand
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from core.models import StudentProfile, EmployerProfile, Project, Education, Employment, Skill
 from datetime import date, timedelta
+
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
+from core.models import (
+    Education,
+    EmployerProfile,
+    Employment,
+    Project,
+    Skill,
+    StudentProfile,
+)
 
 User = get_user_model()
 
@@ -34,16 +43,16 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('Demo data cleared.'))
 
         self.stdout.write('Creating demo users and data...')
-        
+
         # Create demo students
         self.create_demo_students()
-        
+
         # Create demo employers (with different approval statuses)
         self.create_demo_employers()
-        
+
         # Create demo projects
         self.create_demo_projects()
-        
+
         self.stdout.write(self.style.SUCCESS('Demo data populated successfully!'))
         self.stdout.write('')
         self.stdout.write('Demo Login Credentials:')
@@ -68,7 +77,7 @@ class Command(BaseCommand):
                 password='password123',
                 user_type='student'
             )
-            
+
             john_profile = StudentProfile.objects.create(
                 user=john,
                 phone='709-555-0123',
@@ -85,7 +94,7 @@ class Command(BaseCommand):
                 additional_info='Active in programming competitions and hackathons',
                 profile_complete=True
             )
-            
+
             # Education
             Education.objects.create(
                 student=john_profile,
@@ -96,7 +105,7 @@ class Command(BaseCommand):
                 start_date=date(2022, 9, 1),
                 is_current=True
             )
-            
+
             # Skills
             skills_data = [
                 ('Python', 'advanced', 'Used in multiple projects and coursework'),
@@ -105,7 +114,7 @@ class Command(BaseCommand):
                 ('Git', 'advanced', 'Version control for all projects'),
                 ('Django', 'beginner', 'Currently learning web frameworks')
             ]
-            
+
             for skill_name, level, desc in skills_data:
                 Skill.objects.create(
                     student=john_profile,
@@ -113,7 +122,7 @@ class Command(BaseCommand):
                     level=level,
                     experience_description=desc
                 )
-            
+
             # Employment
             Employment.objects.create(
                 student=john_profile,
@@ -135,7 +144,7 @@ class Command(BaseCommand):
                 password='password123',
                 user_type='student'
             )
-            
+
             sarah_profile = StudentProfile.objects.create(
                 user=sarah,
                 phone='709-555-0456',
@@ -151,7 +160,7 @@ class Command(BaseCommand):
                 career_goals='Digital marketing and business analysis with focus on data-driven decision making',
                 profile_complete=True
             )
-            
+
             # Education
             Education.objects.create(
                 student=sarah_profile,
@@ -162,7 +171,7 @@ class Command(BaseCommand):
                 start_date=date(2021, 9, 1),
                 is_current=True
             )
-            
+
             # Skills
             skills_data = [
                 ('Digital Marketing', 'advanced', 'Social media campaigns and SEO'),
@@ -171,7 +180,7 @@ class Command(BaseCommand):
                 ('Adobe Creative Suite', 'beginner', 'Photoshop and Illustrator basics'),
                 ('Google Ads', 'intermediate', 'Certified in Google Ads fundamentals')
             ]
-            
+
             for skill_name, level, desc in skills_data:
                 Skill.objects.create(
                     student=sarah_profile,
@@ -190,7 +199,7 @@ class Command(BaseCommand):
                 password='password123',
                 user_type='student'
             )
-            
+
             mike_profile = StudentProfile.objects.create(
                 user=mike,
                 phone='709-555-0789',
@@ -206,7 +215,7 @@ class Command(BaseCommand):
                 career_goals='Embedded systems development and IoT applications',
                 profile_complete=True
             )
-            
+
             # Education
             Education.objects.create(
                 student=mike_profile,
@@ -217,7 +226,7 @@ class Command(BaseCommand):
                 start_date=date(2023, 9, 1),
                 is_current=True
             )
-            
+
             # Skills
             skills_data = [
                 ('C/C++', 'intermediate', 'Embedded programming projects'),
@@ -226,7 +235,7 @@ class Command(BaseCommand):
                 ('PCB Design', 'beginner', 'Introduction to circuit design'),
                 ('Python', 'beginner', 'Automation scripts and data analysis')
             ]
-            
+
             for skill_name, level, desc in skills_data:
                 Skill.objects.create(
                     student=mike_profile,
@@ -246,7 +255,7 @@ class Command(BaseCommand):
                 password='password123',
                 user_type='employer'
             )
-            
+
             EmployerProfile.objects.create(
                 user=tech_user,
                 company_name='TechCorp Solutions',
@@ -271,7 +280,7 @@ class Command(BaseCommand):
                 password='password123',
                 user_type='employer'
             )
-            
+
             EmployerProfile.objects.create(
                 user=innov_user,
                 company_name='Innovative Tech Solutions',
@@ -295,7 +304,7 @@ class Command(BaseCommand):
                 password='password123',
                 user_type='employer'
             )
-            
+
             EmployerProfile.objects.create(
                 user=creative_user,
                 company_name='Atlantic Creative Studio',
@@ -314,7 +323,7 @@ class Command(BaseCommand):
         # Get approved employers
         tech_corp = EmployerProfile.objects.filter(company_name='TechCorp Solutions').first()
         creative_studio = EmployerProfile.objects.filter(company_name='Atlantic Creative Studio').first()
-        
+
         if tech_corp:
             # Project 1: Web Development
             Project.objects.get_or_create(
@@ -332,7 +341,7 @@ class Command(BaseCommand):
                     'is_active': True
                 }
             )
-            
+
             # Project 2: Data Analysis
             Project.objects.get_or_create(
                 employer=tech_corp,
@@ -349,7 +358,7 @@ class Command(BaseCommand):
                     'is_active': True
                 }
             )
-        
+
         if creative_studio:
             # Project 3: Marketing Campaign
             Project.objects.get_or_create(

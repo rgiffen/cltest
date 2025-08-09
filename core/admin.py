@@ -1,9 +1,17 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
 from .models import (
-    User, StudentProfile, EmployerProfile, Education, Employment, 
-    Skill, Reference, Project
+    Education,
+    EmployerProfile,
+    Employment,
+    Project,
+    Reference,
+    Skill,
+    StudentProfile,
+    User,
 )
+
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
@@ -27,11 +35,11 @@ class EmployerProfileAdmin(admin.ModelAdmin):
     list_filter = ('approval_status', 'industry')
     search_fields = ('company_name', 'contact_name', 'user__email')
     actions = ['approve_employers', 'reject_employers']
-    
+
     def approve_employers(self, request, queryset):
         queryset.update(approval_status='approved')
     approve_employers.short_description = "Approve selected employers"
-    
+
     def reject_employers(self, request, queryset):
         queryset.update(approval_status='rejected')
     reject_employers.short_description = "Reject selected employers"
