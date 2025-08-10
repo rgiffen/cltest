@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0004_studentprofile_external_links'),
+        ("core", "0004_studentprofile_external_links"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='studentprofile',
-            name='documents',
+            model_name="studentprofile",
+            name="documents",
             field=models.JSONField(blank=True, default=list),
         ),
         migrations.AddField(
-            model_name='studentprofile',
-            name='profile_links',
+            model_name="studentprofile",
+            name="profile_links",
             field=models.JSONField(blank=True, default=list),
         ),
     ]

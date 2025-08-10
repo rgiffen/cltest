@@ -15,7 +15,7 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def clean(self):
+    def clean(self) -> None:
         if self.user_type == "student" and self.email:
             if not self.email.endswith("@mun.ca"):
                 raise ValidationError(
@@ -114,7 +114,7 @@ class StudentProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.user.get_full_name()} - {self.program}"
 
 
@@ -133,7 +133,7 @@ class Education(models.Model):
     class Meta:
         ordering = ["-start_date"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.degree} in {self.field_of_study} - {self.institution}"
 
 
@@ -151,7 +151,7 @@ class Employment(models.Model):
     class Meta:
         ordering = ["-start_date"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.position} at {self.company}"
 
 
@@ -173,7 +173,7 @@ class Skill(models.Model):
     class Meta:
         unique_together = ["student", "name"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.level})"
 
 
@@ -190,7 +190,7 @@ class Reference(models.Model):
         blank=True, help_text="Skills this reference can endorse"
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} - {self.position} at {self.company}"
 
 
@@ -235,7 +235,7 @@ class EmployerProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.company_name} - {self.approval_status}"
 
 
@@ -289,5 +289,5 @@ class Project(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.title} - {self.employer.company_name}"

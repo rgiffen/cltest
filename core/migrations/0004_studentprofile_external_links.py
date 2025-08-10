@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0003_employerprofile_rejection_reason'),
+        ("core", "0003_employerprofile_rejection_reason"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='studentprofile',
-            name='external_links',
+            model_name="studentprofile",
+            name="external_links",
             field=models.JSONField(blank=True, default=dict),
         ),
     ]

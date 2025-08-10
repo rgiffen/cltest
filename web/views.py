@@ -1,11 +1,14 @@
 import json
 import random
+from datetime import date, datetime
+from typing import Any, cast
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse
+from django.db.models import QuerySet
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
@@ -13,200 +16,257 @@ from core.models import (
     Education,
     EmployerProfile,
     Employment,
+    Project,
     Skill,
     StudentProfile,
     User,
 )
 
 
-def home(request):
+def parse_date_string(date_str: str | None) -> date | None:
+    """Parse date string and return a date object, None if invalid/empty"""
+    if not date_str or not date_str.strip():
+        return None
+    try:
+        # Django usually sends dates in YYYY-MM-DD format from HTML date inputs
+        return datetime.strptime(date_str.strip(), "%Y-%m-%d").date()
+    except ValueError:
+        # If that fails, try other common formats
+        try:
+            return datetime.strptime(date_str.strip(), "%m/%d/%Y").date()
+        except ValueError:
+            return None
+
+
+def parse_required_date_string(date_str: str | None) -> date:
+    """Parse date string and return a date object, use today if invalid/empty"""
+    parsed_date = parse_date_string(date_str)
+    if parsed_date is None:
+        # Return today's date as fallback for required fields
+        return date.today()
+    return parsed_date
+
+
+def home(request: HttpRequest) -> HttpResponse:
     # If user is already logged in, redirect to appropriate dashboard
+    auth_user = cast(User, request.user)
     if request.user.is_authenticated:
         # Handle admin users and users without user_type
-        if not hasattr(request.user, 'user_type') or not request.user.user_type:
-            if request.user.is_staff or request.user.is_superuser:
+        if not hasattr(auth_user, "user_type") or not auth_user.user_type:
+            if auth_user.is_staff or auth_user.is_superuser:
                 # Admin users can stay on home page or redirect to admin
-                return render(request, 'auth_choice.html', {
-                    'show_admin_link': True,
-                    'user': request.user
-                })
+                return render(
+                    request,
+                    "auth_choice.html",
+                    {"show_admin_link": True, "user": request.user},
+                )
             else:
                 # Regular users without user_type should choose their role
-                return redirect('web:register')
+                return redirect("web:register")
 
         # Handle regular users with user_type
-        if request.user.user_type == 'student':
+        if auth_user.user_type == "student":
             try:
-                request.user.student_profile  # Check if profile exists  # noqa: B018
-                return redirect('web:student_dashboard')
+                auth_user.student_profile  # type: ignore[misc]  # Check if profile exists  # noqa: B018
+                return redirect("web:student_dashboard")
             except StudentProfile.DoesNotExist:
                 # User exists but needs to complete profile - redirect to profile setup
-                return redirect('web:student_profile_setup')
-        elif request.user.user_type == 'employer':
-            return redirect('web:employer_dashboard')
+                return redirect("web:student_profile_setup")
+        elif auth_user.user_type == "employer":
+            return redirect("web:employer_dashboard")
 
     # Show auth choice for anonymous users
-    return render(request, 'auth_choice.html')
+    return render(request, "auth_choice.html")
 
-def register(request):
+
+def register(request: HttpRequest) -> HttpResponse:
     # If user is already logged in, redirect to dashboard
     if request.user.is_authenticated:
-        return redirect('web:home')
+        return redirect("web:home")
 
-    return render(request, 'register_choice.html')
+    return render(request, "register_choice.html")
 
-def student_account_creation(request):
+
+def student_account_creation(request: HttpRequest) -> HttpResponse:
     """Step 1: Account creation with email and password"""
     # If user is already logged in, check if they need to complete their profile
-    if request.user.is_authenticated:
-        if request.user.user_type == 'student':
+    auth_user = cast(User, request.user)
+    if auth_user.is_authenticated:
+        if auth_user.user_type == "student":
             # Check if they have a complete profile
             try:
-                request.user.student_profile  # Check if profile exists  # noqa: B018
-                return redirect('web:student_dashboard')
+                auth_user.student_profile  ## type: ignore[misc]  # Check if profile exists  # noqa: B018
+                return redirect("web:student_dashboard")
             except StudentProfile.DoesNotExist:
                 # User exists but needs to complete profile - redirect to profile setup
-                return redirect('web:student_profile_setup')
+                return redirect("web:student_profile_setup")
         else:
             # Not a student, redirect to appropriate place
-            return redirect('web:home')
+            return redirect("web:home")
 
-    return render(request, 'student_account_creation.html')
+    return render(request, "student_account_creation.html")
 
-def student_profile_setup(request):
+
+def student_profile_setup(request: HttpRequest) -> HttpResponse:
     """Step 2: Profile setup wizard (after account creation)"""
     # Check if user is authenticated and is a student
-    if not request.user.is_authenticated:
-        return redirect('web:student_register')
+    auth_user = cast(User, request.user)
 
-    if request.user.user_type != 'student':
-        return redirect('web:home')
+    if not request.user.is_authenticated:
+        return redirect("web:student_register")
+
+    if auth_user.user_type != "student":
+        return redirect("web:home")
 
     # Check if profile already exists
-    profile = getattr(request.user, 'student_profile', None)
+    profile = getattr(request.user, "student_profile", None)
     if profile is not None:
-        return redirect('web:student_dashboard')
+        return redirect("web:student_dashboard")
     else:
         # Show profile setup wizard
-        return render(request, 'student_registration.html')
+        return render(request, "student_registration.html")
+
 
 @require_http_methods(["POST"])
-def process_student_registration(request):
+def process_student_registration(request: HttpRequest) -> JsonResponse:
     """Handle the profile creation steps (after account is created)"""
-    current_step = int(request.POST.get('current_step', 1))
+    current_step = int(request.POST.get("current_step", 1))
 
     if current_step == 8:  # Final step - create complete profile
         return create_student_profile(request)
 
     # For other steps, just return success (client-side navigation)
-    return JsonResponse({'status': 'success', 'step': current_step})
+    return JsonResponse({"status": "success", "step": current_step})
 
-def create_student_profile(request):
+
+def create_student_profile(request: HttpRequest) -> JsonResponse:
     """Create the complete student profile after account exists"""
+    auth_user = cast(User, request.user)
+
     try:
         # User should already be authenticated at this point
-        if not request.user.is_authenticated or request.user.user_type != 'student':
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Invalid session. Please start over.'
-            })
-
-        user = request.user
+        if not auth_user.is_authenticated or auth_user.user_type != "student":
+            return JsonResponse(
+                {"status": "error", "message": "Invalid session. Please start over."}
+            )
 
         # Check if profile already exists
-        if hasattr(user, 'student_profile'):
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Profile already exists.'
-            })
+        if hasattr(auth_user, "student_profile"):
+            return JsonResponse(
+                {"status": "error", "message": "Profile already exists."}
+            )
 
         # Collect external links
         external_links = {}
-        if request.POST.get('linkedin_url'):
-            external_links['linkedin'] = request.POST.get('linkedin_url')
-        if request.POST.get('github_url'):
-            external_links['github'] = request.POST.get('github_url')
-        if request.POST.get('portfolio_url'):
-            external_links['portfolio'] = request.POST.get('portfolio_url')
-        if request.POST.get('other_url'):
-            external_links['other'] = request.POST.get('other_url')
+        if request.POST.get("linkedin_url"):
+            external_links["linkedin"] = request.POST.get("linkedin_url")
+        if request.POST.get("github_url"):
+            external_links["github"] = request.POST.get("github_url")
+        if request.POST.get("portfolio_url"):
+            external_links["portfolio"] = request.POST.get("portfolio_url")
+        if request.POST.get("other_url"):
+            external_links["other"] = request.POST.get("other_url")
 
         # Create student profile
         profile = StudentProfile.objects.create(
-            user=user,
-            phone=request.POST.get('phone', ''),
-            academic_year=request.POST.get('academic_year', ''),
-            program=request.POST.get('program', ''),
-            currently_available=request.POST.get('currently_available', ''),
-            available_date=request.POST.get('available_date') or None,
-            availability_notes=request.POST.get('availability_notes', ''),
-            remote_preference=request.POST.get('remote_preference', ''),
-            location_flexibility=request.POST.get('location_flexibility', ''),
-            career_goals=request.POST.get('career_goals', ''),
-            additional_info=request.POST.get('additional_info', ''),
-            availability=request.POST.getlist('availability'),
+            user=auth_user,
+            phone=request.POST.get("phone", ""),
+            academic_year=request.POST.get("academic_year", ""),
+            program=request.POST.get("program", ""),
+            currently_available=request.POST.get("currently_available", ""),
+            available_date=request.POST.get("available_date") or None,
+            availability_notes=request.POST.get("availability_notes", ""),
+            remote_preference=request.POST.get("remote_preference", ""),
+            location_flexibility=request.POST.get("location_flexibility", ""),
+            career_goals=request.POST.get("career_goals", ""),
+            additional_info=request.POST.get("additional_info", ""),
+            availability=request.POST.getlist("availability"),
             external_links=external_links,
-            profile_complete=True
+            profile_complete=True,
         )
 
         # Create education entries
         education_count = 0
-        while f'education_institution_{education_count}' in request.POST:
-            institution = request.POST.get(f'education_institution_{education_count}')
+        while f"education_institution_{education_count}" in request.POST:
+            institution = request.POST.get(f"education_institution_{education_count}")
             if institution:
                 Education.objects.create(
                     student=profile,
                     institution=institution,
-                    degree=request.POST.get(f'education_degree_{education_count}', ''),
-                    field_of_study=request.POST.get(f'education_field_{education_count}', ''),
-                    gpa=request.POST.get(f'education_gpa_{education_count}') or None,
-                    start_date=request.POST.get(f'education_start_{education_count}') or None,
-                    end_date=request.POST.get(f'education_end_{education_count}') or None,
-                    is_current=bool(request.POST.get(f'education_current_{education_count}'))
+                    degree=request.POST.get(f"education_degree_{education_count}", ""),
+                    field_of_study=request.POST.get(
+                        f"education_field_{education_count}", ""
+                    ),
+                    gpa=request.POST.get(f"education_gpa_{education_count}") or None,
+                    start_date=parse_required_date_string(
+                        request.POST.get(f"education_start_{education_count}")
+                    ),
+                    end_date=parse_date_string(
+                        request.POST.get(f"education_end_{education_count}")
+                    ),
+                    is_current=bool(
+                        request.POST.get(f"education_current_{education_count}")
+                    ),
                 )
             education_count += 1
 
         # Create employment entries
         employment_count = 0
-        while f'employment_company_{employment_count}' in request.POST:
-            company = request.POST.get(f'employment_company_{employment_count}')
+        while f"employment_company_{employment_count}" in request.POST:
+            company = request.POST.get(f"employment_company_{employment_count}")
             if company:
                 Employment.objects.create(
                     student=profile,
                     company=company,
-                    position=request.POST.get(f'employment_position_{employment_count}', ''),
-                    start_date=request.POST.get(f'employment_start_{employment_count}') or None,
-                    end_date=request.POST.get(f'employment_end_{employment_count}') or None,
-                    description=request.POST.get(f'employment_description_{employment_count}', ''),
-                    is_current=bool(request.POST.get(f'employment_current_{employment_count}'))
+                    position=request.POST.get(
+                        f"employment_position_{employment_count}", ""
+                    ),
+                    start_date=parse_required_date_string(
+                        request.POST.get(f"employment_start_{employment_count}")
+                    ),
+                    end_date=parse_date_string(
+                        request.POST.get(f"employment_end_{employment_count}")
+                    ),
+                    description=request.POST.get(
+                        f"employment_description_{employment_count}", ""
+                    ),
+                    is_current=bool(
+                        request.POST.get(f"employment_current_{employment_count}")
+                    ),
                 )
             employment_count += 1
 
         # Create skill entries
         skill_count = 0
-        while f'skill_name_{skill_count}' in request.POST:
-            skill_name = request.POST.get(f'skill_name_{skill_count}')
+        while f"skill_name_{skill_count}" in request.POST:
+            skill_name = request.POST.get(f"skill_name_{skill_count}")
             if skill_name:
                 Skill.objects.create(
                     student=profile,
                     name=skill_name,
-                    level=request.POST.get(f'skill_level_{skill_count}', 'beginner'),
-                    experience_description=request.POST.get(f'skill_description_{skill_count}', '')
+                    level=request.POST.get(f"skill_level_{skill_count}", "beginner"),
+                    experience_description=request.POST.get(
+                        f"skill_description_{skill_count}", ""
+                    ),
                 )
             skill_count += 1
 
         # Create documents entries
         documents = []
         document_count = 0
-        while f'document_type_{document_count}' in request.POST:
-            doc_type = request.POST.get(f'document_type_{document_count}')
-            doc_title = request.POST.get(f'document_title_{document_count}')
+        while f"document_type_{document_count}" in request.POST:
+            doc_type = request.POST.get(f"document_type_{document_count}")
+            doc_title = request.POST.get(f"document_title_{document_count}")
             if doc_type or doc_title:
                 document_entry = {
-                    'type': doc_type,
-                    'title': doc_title,
-                    'description': request.POST.get(f'document_description_{document_count}', ''),
-                    'file_uploaded': bool(request.FILES.get(f'document_file_{document_count}'))
+                    "type": doc_type,
+                    "title": doc_title,
+                    "description": request.POST.get(
+                        f"document_description_{document_count}", ""
+                    ),
+                    "file_uploaded": bool(
+                        request.FILES.get(f"document_file_{document_count}")
+                    ),
                 }
                 documents.append(document_entry)
             document_count += 1
@@ -214,15 +274,17 @@ def create_student_profile(request):
         # Create profile links entries
         profile_links = []
         link_count = 0
-        while f'link_type_{link_count}' in request.POST:
-            link_type = request.POST.get(f'link_type_{link_count}')
-            link_url = request.POST.get(f'link_url_{link_count}')
+        while f"link_type_{link_count}" in request.POST:
+            link_type = request.POST.get(f"link_type_{link_count}")
+            link_url = request.POST.get(f"link_url_{link_count}")
             if link_type or link_url:
                 link_entry = {
-                    'type': link_type,
-                    'title': request.POST.get(f'link_title_{link_count}', ''),
-                    'url': link_url,
-                    'description': request.POST.get(f'link_description_{link_count}', '')
+                    "type": link_type,
+                    "title": request.POST.get(f"link_title_{link_count}", ""),
+                    "url": link_url,
+                    "description": request.POST.get(
+                        f"link_description_{link_count}", ""
+                    ),
                 }
                 profile_links.append(link_entry)
             link_count += 1
@@ -232,62 +294,68 @@ def create_student_profile(request):
         profile.profile_links = profile_links
         profile.save()
 
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Profile created successfully!',
-            'redirect': '/student/dashboard/'
-        })
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Profile created successfully!",
+                "redirect": "/student/dashboard/",
+            }
+        )
 
     except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': f'Error creating profile: {str(e)}'
-        })
+        return JsonResponse(
+            {"status": "error", "message": f"Error creating profile: {str(e)}"}
+        )
+
 
 @require_http_methods(["POST"])
-def create_student_account(request):
+def create_student_account(request: HttpRequest) -> JsonResponse:
     """Create student account with email/password validation"""
     try:
         # Get form data
-        email = request.POST.get('email', '').strip().lower()
-        password = request.POST.get('password', '')
-        confirm_password = request.POST.get('confirm_password', '')
-        first_name = request.POST.get('first_name', '').strip()
-        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get("email", "").strip().lower()
+        password = request.POST.get("password", "")
+        confirm_password = request.POST.get("confirm_password", "")
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
 
         # Validate @mun.ca email
-        if not email.endswith('@mun.ca'):
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Only @mun.ca email addresses are accepted for student accounts.'
-            })
+        if not email.endswith("@mun.ca"):
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Only @mun.ca email addresses are accepted for student accounts.",
+                }
+            )
 
         # Check if email already exists
         if User.objects.filter(email=email).exists():
-            return JsonResponse({
-                'status': 'error',
-                'message': 'An account with this email already exists. Please sign in instead.'
-            })
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "An account with this email already exists. Please sign in instead.",
+                }
+            )
 
         # Validate required fields
         if not all([email, password, first_name, last_name]):
-            return JsonResponse({
-                'status': 'error',
-                'message': 'All fields are required.'
-            })
+            return JsonResponse(
+                {"status": "error", "message": "All fields are required."}
+            )
 
         # Validate password
         if len(password) < 8:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Password must be at least 8 characters long.'
-            })
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Password must be at least 8 characters long.",
+                }
+            )
 
         if password != confirm_password:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Passwords do not match.'
-            })
+            return JsonResponse(
+                {"status": "error", "message": "Passwords do not match."}
+            )
 
         # Create user account
         user = User.objects.create_user(
@@ -296,282 +364,330 @@ def create_student_account(request):
             first_name=first_name,
             last_name=last_name,
             password=password,
-            user_type='student'
+            user_type="student",
         )
 
         # Log the user in
         login(request, user)
 
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Account created successfully!',
-        })
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Account created successfully!",
+            }
+        )
 
     except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': f'Error creating account: {str(e)}'
-        })
+        return JsonResponse(
+            {"status": "error", "message": f"Error creating account: {str(e)}"}
+        )
 
-def employer_register(request):
+
+def employer_register(request: HttpRequest) -> HttpResponse:
     # If user is already logged in, redirect to dashboard
     if request.user.is_authenticated:
-        return redirect('web:home')
+        return redirect("web:home")
 
-    return render(request, 'employer_registration.html')
+    return render(request, "employer_registration.html")
+
 
 @require_http_methods(["POST"])
-def process_employer_registration(request):
-    current_step = int(request.POST.get('current_step', 1))
+def process_employer_registration(request: HttpRequest) -> JsonResponse:
+    current_step = int(request.POST.get("current_step", 1))
 
     if current_step == 3:  # Final step - create employer account
         return create_employer_account(request)
 
     # For other steps, just return success (client-side navigation)
-    return JsonResponse({'status': 'success', 'step': current_step})
+    return JsonResponse({"status": "success", "step": current_step})
 
-def create_employer_account(request):
+
+def create_employer_account(request: HttpRequest) -> JsonResponse:
     try:
         # Check if email already exists
-        email = request.POST.get('email')
+        email = request.POST.get("email") or ""
         if User.objects.filter(email=email).exists():
-            return JsonResponse({
-                'status': 'error',
-                'message': 'An account with this email already exists. Please sign in instead.'
-            })
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "An account with this email already exists. Please sign in instead.",
+                }
+            )
 
         # Get and validate password
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
 
         if not password or len(password) < 8:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Password must be at least 8 characters long.'
-            })
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Password must be at least 8 characters long.",
+                }
+            )
 
         if password != confirm_password:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Passwords do not match.'
-            })
+            return JsonResponse(
+                {"status": "error", "message": "Passwords do not match."}
+            )
 
         # Create user
+        first_name = request.POST.get("first_name") or ""
+        last_name = request.POST.get("last_name") or ""
+
         user = User.objects.create_user(
             username=email,  # Use email as username
             email=email,
-            first_name=request.POST.get('first_name'),
-            last_name=request.POST.get('last_name'),
+            first_name=first_name,
+            last_name=last_name,
             password=password,
-            user_type='employer'
+            user_type="employer",
         )
 
         # Create employer profile
         EmployerProfile.objects.create(
             user=user,
-            company_name=request.POST.get('company_name'),
-            industry=request.POST.get('industry'),
-            website=request.POST.get('website', ''),
-            company_description=request.POST.get('company_description'),
-            company_location=request.POST.get('company_location'),
-            contact_name=request.POST.get('contact_name'),
-            contact_title=request.POST.get('contact_title'),
-            contact_phone=request.POST.get('contact_phone', ''),
-            approval_status='pending'  # Requires admin approval
+            company_name=request.POST.get("company_name") or "",
+            industry=request.POST.get("industry") or "",
+            website=request.POST.get("website", ""),
+            company_description=request.POST.get("company_description") or "",
+            company_location=request.POST.get("company_location") or "",
+            contact_name=request.POST.get("contact_name") or "",
+            contact_title=request.POST.get("contact_title") or "",
+            contact_phone=request.POST.get("contact_phone", ""),
+            approval_status="pending",  # Requires admin approval
         )
 
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Your registration has been submitted for review. You will receive an email notification once approved.',
-        })
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": "Your registration has been submitted for review. You will receive an email notification once approved.",
+            }
+        )
 
     except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': f'Error creating account: {str(e)}'
-        })
+        return JsonResponse(
+            {"status": "error", "message": f"Error creating account: {str(e)}"}
+        )
 
-def login_view(request):
+
+def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
-        return redirect('web:home')
+        return redirect("web:home")
 
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
+    if request.method == "POST":
+        email = request.POST.get("email")
+        password = request.POST.get("password")
 
         if email and password:
             # Try to find user by email (which is used as username)
             try:
                 user = User.objects.get(email=email)
                 # Authenticate using username and password
-                auth_user = authenticate(request, username=user.username, password=password)
+                auth_user = cast(
+                    User,
+                    authenticate(request, username=user.username, password=password),
+                )
 
                 if auth_user:
                     login(request, auth_user)
 
                     # Redirect based on user type
-                    if auth_user.user_type == 'student':
-                        return redirect('web:student_dashboard')
-                    elif auth_user.user_type == 'employer':
-                        return redirect('web:employer_dashboard')
+                    if auth_user.user_type == "student":
+                        return redirect("web:student_dashboard")
+                    elif auth_user.user_type == "employer":
+                        return redirect("web:employer_dashboard")
                     else:
-                        return redirect('web:home')
+                        return redirect("web:home")
                 else:
-                    messages.error(request, 'Invalid email or password.')
+                    messages.error(request, "Invalid email or password.")
             except User.DoesNotExist:
-                messages.error(request, 'No account found with this email address.')
+                messages.error(request, "No account found with this email address.")
         else:
-            messages.error(request, 'Please provide both email and password.')
+            messages.error(request, "Please provide both email and password.")
 
-    return render(request, 'login.html')
+    return render(request, "login.html")
 
-def logout_view(request):
+
+def logout_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         logout(request)
 
-    return redirect('web:home')
+    return redirect("web:home")
 
-def verify_email(request):
+
+def verify_email(request: HttpRequest) -> HttpResponse:
     return HttpResponse("Email Verification")
 
+
 @login_required
-def student_dashboard(request):
-    if not hasattr(request.user, 'user_type') or request.user.user_type != 'student':
-        messages.error(request, 'Access denied. Student account required.')
+def student_dashboard(request: HttpRequest) -> HttpResponse:
+    auth_user = cast(User, request.user)
+    if not hasattr(auth_user, "user_type") or auth_user.user_type != "student":
+        messages.error(request, "Access denied. Student account required.")
         logout(request)
-        return redirect('web:login')
+        return redirect("web:login")
 
     try:
-        profile = request.user.student_profile
-        return render(request, 'student_dashboard.html', {'profile': profile})
+        profile = request.user.student_profile  # type: ignore[union-attr]
+        return render(request, "student_dashboard.html", {"profile": profile})
     except StudentProfile.DoesNotExist:
-        messages.info(request, 'Please complete your student profile.')
-        return redirect('web:student_register')
+        messages.info(request, "Please complete your student profile.")
+        return redirect("web:student_register")
+
 
 @login_required
-def student_profile(request):
+def student_profile(request: HttpRequest) -> HttpResponse:
     """Edit student profile page"""
-    if not hasattr(request.user, 'user_type') or request.user.user_type != 'student':
-        messages.error(request, 'Access denied. Student account required.')
-        return redirect('web:login')
+    auth_user = cast(User, request.user)
+    if not hasattr(request.user, "user_type") or auth_user.user_type != "student":
+        messages.error(request, "Access denied. Student account required.")
+        return redirect("web:login")
 
     try:
-        profile = request.user.student_profile
+        profile = request.user.student_profile  # type: ignore[union-attr]
 
-        if request.method == 'POST':
+        if request.method == "POST":
             return update_student_profile(request, profile)
 
         # GET request - show the edit form
         context = {
-            'profile': profile,
-            'user': request.user,
-            'education_entries': profile.education.all(),
-            'employment_entries': profile.employment.all(),
-            'skill_entries': profile.skills.all(),
+            "profile": profile,
+            "user": request.user,
+            "education_entries": profile.education.all(),
+            "employment_entries": profile.employment.all(),
+            "skill_entries": profile.skills.all(),
         }
-        return render(request, 'student_profile_edit.html', context)
+        return render(request, "student_profile_edit.html", context)
 
     except StudentProfile.DoesNotExist:
-        messages.info(request, 'Please complete your student profile first.')
-        return redirect('web:student_profile_setup')
+        messages.info(request, "Please complete your student profile first.")
+        return redirect("web:student_profile_setup")
 
-def update_student_profile(request, profile):
+
+def update_student_profile(
+    request: HttpRequest, profile: "StudentProfile"
+) -> HttpResponse:
     """Handle student profile updates"""
     try:
         # Update user information
-        user = request.user
-        user.first_name = request.POST.get('first_name', user.first_name)
-        user.last_name = request.POST.get('last_name', user.last_name)
-        user.email = request.POST.get('email', user.email)
+        user = request.user  # type: ignore[assignment]
+        user.first_name = request.POST.get("first_name", user.first_name)  # type: ignore[union-attr]
+        user.last_name = request.POST.get("last_name", user.last_name)  # type: ignore[union-attr]
+        user.email = request.POST.get("email", user.email)  # type: ignore[union-attr]
         user.save()
 
         # Update external links
         external_links = {}
-        if request.POST.get('linkedin_url'):
-            external_links['linkedin'] = request.POST.get('linkedin_url')
-        if request.POST.get('github_url'):
-            external_links['github'] = request.POST.get('github_url')
-        if request.POST.get('portfolio_url'):
-            external_links['portfolio'] = request.POST.get('portfolio_url')
-        if request.POST.get('other_url'):
-            external_links['other'] = request.POST.get('other_url')
+        if request.POST.get("linkedin_url"):
+            external_links["linkedin"] = request.POST.get("linkedin_url")
+        if request.POST.get("github_url"):
+            external_links["github"] = request.POST.get("github_url")
+        if request.POST.get("portfolio_url"):
+            external_links["portfolio"] = request.POST.get("portfolio_url")
+        if request.POST.get("other_url"):
+            external_links["other"] = request.POST.get("other_url")
 
         # Update profile information
-        profile.phone = request.POST.get('phone', '')
-        profile.academic_year = request.POST.get('academic_year', '')
-        profile.program = request.POST.get('program', '')
-        profile.currently_available = request.POST.get('currently_available', '')
-        profile.available_date = request.POST.get('available_date') or None
-        profile.availability_notes = request.POST.get('availability_notes', '')
-        profile.remote_preference = request.POST.get('remote_preference', '')
-        profile.location_flexibility = request.POST.get('location_flexibility', '')
-        profile.career_goals = request.POST.get('career_goals', '')
-        profile.additional_info = request.POST.get('additional_info', '')
-        profile.availability = request.POST.getlist('availability')
+        profile.phone = request.POST.get("phone", "")
+        profile.academic_year = request.POST.get("academic_year", "")
+        profile.program = request.POST.get("program", "")
+        profile.currently_available = request.POST.get("currently_available", "")
+        profile.available_date = request.POST.get("available_date") or None
+        profile.availability_notes = request.POST.get("availability_notes", "")
+        profile.remote_preference = request.POST.get("remote_preference", "")
+        profile.location_flexibility = request.POST.get("location_flexibility", "")
+        profile.career_goals = request.POST.get("career_goals", "")
+        profile.additional_info = request.POST.get("additional_info", "")
+        profile.availability = request.POST.getlist("availability")
         profile.external_links = external_links
         profile.save()
 
         # Update education entries (delete existing and recreate)
-        profile.education.all().delete()
+        profile.education.all().delete()  # type: ignore[misc]
         education_count = 0
-        while f'education_institution_{education_count}' in request.POST:
-            institution = request.POST.get(f'education_institution_{education_count}')
+        while f"education_institution_{education_count}" in request.POST:
+            institution = request.POST.get(f"education_institution_{education_count}")
             if institution:
                 Education.objects.create(
                     student=profile,
                     institution=institution,
-                    degree=request.POST.get(f'education_degree_{education_count}', ''),
-                    field_of_study=request.POST.get(f'education_field_{education_count}', ''),
-                    gpa=request.POST.get(f'education_gpa_{education_count}') or None,
-                    start_date=request.POST.get(f'education_start_{education_count}') or None,
-                    end_date=request.POST.get(f'education_end_{education_count}') or None,
-                    is_current=bool(request.POST.get(f'education_current_{education_count}'))
+                    degree=request.POST.get(f"education_degree_{education_count}", ""),
+                    field_of_study=request.POST.get(
+                        f"education_field_{education_count}", ""
+                    ),
+                    gpa=request.POST.get(f"education_gpa_{education_count}") or None,
+                    start_date=parse_required_date_string(
+                        request.POST.get(f"education_start_{education_count}")
+                    ),
+                    end_date=parse_date_string(
+                        request.POST.get(f"education_end_{education_count}")
+                    ),
+                    is_current=bool(
+                        request.POST.get(f"education_current_{education_count}")
+                    ),
                 )
             education_count += 1
 
         # Update employment entries (delete existing and recreate)
-        profile.employment.all().delete()
+        profile.employment.all().delete()  # type: ignore[misc]
         employment_count = 0
-        while f'employment_company_{employment_count}' in request.POST:
-            company = request.POST.get(f'employment_company_{employment_count}')
+        while f"employment_company_{employment_count}" in request.POST:
+            company = request.POST.get(f"employment_company_{employment_count}")
             if company:
                 Employment.objects.create(
                     student=profile,
                     company=company,
-                    position=request.POST.get(f'employment_position_{employment_count}', ''),
-                    start_date=request.POST.get(f'employment_start_{employment_count}') or None,
-                    end_date=request.POST.get(f'employment_end_{employment_count}') or None,
-                    description=request.POST.get(f'employment_description_{employment_count}', ''),
-                    is_current=bool(request.POST.get(f'employment_current_{employment_count}'))
+                    position=request.POST.get(
+                        f"employment_position_{employment_count}", ""
+                    ),
+                    start_date=parse_required_date_string(
+                        request.POST.get(f"employment_start_{employment_count}")
+                    ),
+                    end_date=parse_date_string(
+                        request.POST.get(f"employment_end_{employment_count}")
+                    ),
+                    description=request.POST.get(
+                        f"employment_description_{employment_count}", ""
+                    ),
+                    is_current=bool(
+                        request.POST.get(f"employment_current_{employment_count}")
+                    ),
                 )
             employment_count += 1
 
         # Update skill entries (delete existing and recreate)
-        profile.skills.all().delete()
+        profile.skills.all().delete()  # type: ignore[misc]
         skill_count = 0
-        while f'skill_name_{skill_count}' in request.POST:
-            skill_name = request.POST.get(f'skill_name_{skill_count}')
+        while f"skill_name_{skill_count}" in request.POST:
+            skill_name = request.POST.get(f"skill_name_{skill_count}")
             if skill_name:
                 Skill.objects.create(
                     student=profile,
                     name=skill_name,
-                    level=request.POST.get(f'skill_level_{skill_count}', 'beginner'),
-                    experience_description=request.POST.get(f'skill_description_{skill_count}', '')
+                    level=request.POST.get(f"skill_level_{skill_count}", "beginner"),
+                    experience_description=request.POST.get(
+                        f"skill_description_{skill_count}", ""
+                    ),
                 )
             skill_count += 1
 
         # Update documents entries
         documents = []
         document_count = 0
-        while f'document_type_{document_count}' in request.POST:
-            doc_type = request.POST.get(f'document_type_{document_count}')
-            doc_title = request.POST.get(f'document_title_{document_count}')
+        while f"document_type_{document_count}" in request.POST:
+            doc_type = request.POST.get(f"document_type_{document_count}")
+            doc_title = request.POST.get(f"document_title_{document_count}")
             if doc_type or doc_title:
                 document_entry = {
-                    'type': doc_type,
-                    'title': doc_title,
-                    'description': request.POST.get(f'document_description_{document_count}', ''),
-                    'file_uploaded': bool(request.FILES.get(f'document_file_{document_count}'))
+                    "type": doc_type,
+                    "title": doc_title,
+                    "description": request.POST.get(
+                        f"document_description_{document_count}", ""
+                    ),
+                    "file_uploaded": bool(
+                        request.FILES.get(f"document_file_{document_count}")
+                    ),
                 }
                 documents.append(document_entry)
             document_count += 1
@@ -579,15 +695,17 @@ def update_student_profile(request, profile):
         # Update profile links entries
         profile_links = []
         link_count = 0
-        while f'link_type_{link_count}' in request.POST:
-            link_type = request.POST.get(f'link_type_{link_count}')
-            link_url = request.POST.get(f'link_url_{link_count}')
+        while f"link_type_{link_count}" in request.POST:
+            link_type = request.POST.get(f"link_type_{link_count}")
+            link_url = request.POST.get(f"link_url_{link_count}")
             if link_type or link_url:
                 link_entry = {
-                    'type': link_type,
-                    'title': request.POST.get(f'link_title_{link_count}', ''),
-                    'url': link_url,
-                    'description': request.POST.get(f'link_description_{link_count}', '')
+                    "type": link_type,
+                    "title": request.POST.get(f"link_title_{link_count}", ""),
+                    "url": link_url,
+                    "description": request.POST.get(
+                        f"link_description_{link_count}", ""
+                    ),
                 }
                 profile_links.append(link_entry)
             link_count += 1
@@ -597,67 +715,77 @@ def update_student_profile(request, profile):
         profile.profile_links = profile_links
         profile.save()
 
-        return redirect('web:student_dashboard')
+        return redirect("web:student_dashboard")
 
     except Exception as e:
-        messages.error(request, f'Error updating profile: {str(e)}')
-        return redirect('web:student_profile')
+        messages.error(request, f"Error updating profile: {str(e)}")
+        return redirect("web:student_profile")
+
 
 @login_required
-def employer_dashboard(request):
-    if not hasattr(request.user, 'user_type') or request.user.user_type != 'employer':
-        messages.error(request, 'Access denied. Employer account required.')
-        return redirect('web:login')
+def employer_dashboard(request: HttpRequest) -> HttpResponse:
+    auth_user = cast(User, request.user)
+    if not hasattr(request.user, "user_type") or auth_user.user_type != "employer":
+        messages.error(request, "Access denied. Employer account required.")
+        return redirect("web:login")
 
     try:
-        profile = request.user.employer_profile
+        profile = request.user.employer_profile  # type: ignore[union-attr]
 
         # Check approval status
-        if profile.approval_status != 'approved':
-            return render(request, 'employer_pending.html', {'profile': profile})
+        if profile.approval_status != "approved":
+            return render(request, "employer_pending.html", {"profile": profile})
 
         # Get projects for approved employers
-        projects = profile.projects.all().order_by('-created_at')
+        projects = profile.projects.all().order_by("-created_at")
 
-        return render(request, 'employer_dashboard.html', {
-            'profile': profile,
-            'projects': projects
-        })
+        return render(
+            request,
+            "employer_dashboard.html",
+            {"profile": profile, "projects": projects},
+        )
 
     except EmployerProfile.DoesNotExist:
-        messages.info(request, 'Please complete your employer registration.')
-        return redirect('web:employer_register')
+        messages.info(request, "Please complete your employer registration.")
+        return redirect("web:employer_register")
+
 
 @login_required
-def create_project(request):
-    if not hasattr(request.user, 'user_type') or request.user.user_type != 'employer':
-        messages.error(request, 'Access denied. Employer account required.')
-        return redirect('web:login')
+def create_project(request: HttpRequest) -> HttpResponse:
+    auth_user = cast(User, request.user)
+    if not hasattr(request.user, "user_type") or auth_user.user_type != "employer":
+        messages.error(request, "Access denied. Employer account required.")
+        return redirect("web:login")
 
     try:
-        profile = request.user.employer_profile
+        profile = request.user.employer_profile  # type: ignore[union-attr]
 
         # Check if employer is approved
-        if profile.approval_status != 'approved':
-            messages.warning(request, 'Your account must be approved before you can post projects.')
-            return redirect('web:employer_dashboard')
+        if profile.approval_status != "approved":
+            messages.warning(
+                request, "Your account must be approved before you can post projects."
+            )
+            return redirect("web:employer_dashboard")
 
-        if request.method == 'POST':
+        if request.method == "POST":
             return process_project_creation(request, profile)
 
-        return render(request, 'create_project.html', {'profile': profile})
+        return render(request, "create_project.html", {"profile": profile})
 
     except EmployerProfile.DoesNotExist:
-        messages.info(request, 'Please complete your employer registration.')
-        return redirect('web:employer_register')
+        messages.info(request, "Please complete your employer registration.")
+        return redirect("web:employer_register")
 
-def process_project_creation(request, profile):
+
+def process_project_creation(
+    request: HttpRequest, profile: "EmployerProfile"
+) -> HttpResponse:
     try:
         # Collect required skills
         required_skills = []
         skill_index = 0
-        while f'required_skills_{skill_index}' in request.POST:
-            skill = request.POST.get(f'required_skills_{skill_index}', '').strip()
+        while f"required_skills_{skill_index}" in request.POST:
+            skill = request.POST.get(f"required_skills_{skill_index}", "").strip()
             if skill:
                 required_skills.append(skill)
             skill_index += 1
@@ -665,112 +793,135 @@ def process_project_creation(request, profile):
         # Collect preferred skills
         preferred_skills = []
         skill_index = 0
-        while f'preferred_skills_{skill_index}' in request.POST:
-            skill = request.POST.get(f'preferred_skills_{skill_index}', '').strip()
+        while f"preferred_skills_{skill_index}" in request.POST:
+            skill = request.POST.get(f"preferred_skills_{skill_index}", "").strip()
             if skill:
                 preferred_skills.append(skill)
             skill_index += 1
 
         # Handle preferred programs
-        preferred_programs_str = request.POST.get('preferred_programs', '')
-        preferred_programs = [p.strip() for p in preferred_programs_str.split(',') if p.strip()] if preferred_programs_str else []
+        preferred_programs_str = request.POST.get("preferred_programs", "")
+        preferred_programs = (
+            [p.strip() for p in preferred_programs_str.split(",") if p.strip()]
+            if preferred_programs_str
+            else []
+        )
 
         # Create project
         from core.models import Project
+
         project = Project.objects.create(
             employer=profile,
-            title=request.POST.get('title'),
-            description=request.POST.get('description'),
-            project_type=request.POST.get('project_type'),
-            duration=request.POST.get('duration'),
-            work_type=request.POST.get('work_type'),
+            title=request.POST.get("title") or "",
+            description=request.POST.get("description") or "",
+            project_type=request.POST.get("project_type") or "",
+            duration=request.POST.get("duration") or "",
+            work_type=request.POST.get("work_type") or "",
             required_skills=required_skills,
             preferred_skills=preferred_skills,
-            min_academic_year=request.POST.get('min_academic_year', ''),
+            min_academic_year=request.POST.get("min_academic_year", ""),
             preferred_programs=preferred_programs,
-            is_active=True
+            is_active=True,
         )
 
-        messages.success(request, f'Project "{project.title}" has been posted successfully!')
-        return redirect('web:employer_dashboard')
+        messages.success(
+            request, f'Project "{project.title}" has been posted successfully!'
+        )
+        return redirect("web:employer_dashboard")
 
     except Exception as e:
-        messages.error(request, f'Error creating project: {str(e)}')
-        return render(request, 'create_project.html', {'profile': profile})
+        messages.error(request, f"Error creating project: {str(e)}")
+        return render(request, "create_project.html", {"profile": profile})
+
 
 @login_required
-def project_matches(request, project_id):
+def project_matches(request: HttpRequest, project_id: int) -> HttpResponse:
     """Show student matches for a specific project"""
-    if not hasattr(request.user, 'user_type') or request.user.user_type != 'employer':
-        messages.error(request, 'Access denied. Employer account required.')
-        return redirect('web:login')
+    auth_user = cast(User, request.user)
+    if not hasattr(request.user, "user_type") or auth_user.user_type != "employer":
+        messages.error(request, "Access denied. Employer account required.")
+        return redirect("web:login")
 
     try:
-        profile = request.user.employer_profile
-        if profile.approval_status != 'approved':
-            messages.warning(request, 'Your account must be approved to view matches.')
-            return redirect('web:employer_dashboard')
+        profile = request.user.employer_profile  # type: ignore[union-attr]
+        if profile.approval_status != "approved":
+            messages.warning(request, "Your account must be approved to view matches.")
+            return redirect("web:employer_dashboard")
 
         # Get project and verify ownership
         from core.models import Project
+
         project = Project.objects.get(id=project_id, employer=profile)
 
         # Get matches using our matching algorithm
         from core.matching import get_project_matches
+
         matches = get_project_matches(project_id)
 
-        return render(request, 'project_matches.html', {
-            'project': project,
-            'matches': matches,
-            'profile': profile
-        })
+        return render(
+            request,
+            "project_matches.html",
+            {"project": project, "matches": matches, "profile": profile},
+        )
 
     except Project.DoesNotExist:
-        messages.error(request, 'Project not found or you do not have permission to view it.')
-        return redirect('web:employer_dashboard')
+        messages.error(
+            request, "Project not found or you do not have permission to view it."
+        )
+        return redirect("web:employer_dashboard")
     except EmployerProfile.DoesNotExist:
-        messages.info(request, 'Please complete your employer registration.')
-        return redirect('web:employer_register')
+        messages.info(request, "Please complete your employer registration.")
+        return redirect("web:employer_register")
+
 
 @login_required
-def browse_projects(request):
+def browse_projects(request: HttpRequest) -> HttpResponse:
     """Show projects that match the current student"""
-    if not hasattr(request.user, 'user_type') or request.user.user_type != 'student':
-        messages.error(request, 'Access denied. Student account required.')
-        return redirect('web:login')
+    auth_user = cast(User, request.user)
+    if not hasattr(request.user, "user_type") or auth_user.user_type != "student":
+        messages.error(request, "Access denied. Student account required.")
+        return redirect("web:login")
 
     try:
-        student_profile = request.user.student_profile
+        student_profile = request.user.student_profile  # type: ignore[union-attr]
 
         # Get project matches using our matching algorithm
         from core.matching import get_student_projects
+
         project_matches = get_student_projects(student_profile)
 
-        return render(request, 'browse_projects.html', {
-            'student_profile': student_profile,
-            'project_matches': project_matches
-        })
+        return render(
+            request,
+            "browse_projects.html",
+            {"student_profile": student_profile, "project_matches": project_matches},
+        )
 
     except StudentProfile.DoesNotExist:
-        messages.info(request, 'Please complete your student profile.')
-        return redirect('web:student_register')
+        messages.info(request, "Please complete your student profile.")
+        return redirect("web:student_register")
+
 
 @login_required
-def employer_projects(request):
+def employer_projects(request: HttpRequest) -> HttpResponse:
     return HttpResponse("Employer Projects")
 
+
 @staff_member_required
-def admin_dashboard(request):
+def admin_dashboard(request: HttpRequest) -> HttpResponse:
     """Admin dashboard with employer approval management and trend analytics"""
     from datetime import datetime, timedelta
 
     from django.db.models import Count
 
-    from .models import EmployerProfile, Project, StudentProfile
+    from core.models import EmployerProfile, StudentProfile
 
     # Get pending employer approvals
-    pending_employers = EmployerProfile.objects.filter(approval_status='pending').order_by('-created_at')
-    approved_employers = EmployerProfile.objects.filter(approval_status='approved').order_by('-created_at')[:5]
+    pending_employers = EmployerProfile.objects.filter(
+        approval_status="pending"
+    ).order_by("-created_at")
+    approved_employers = EmployerProfile.objects.filter(
+        approval_status="approved"
+    ).order_by("-created_at")[:5]
 
     # Get platform statistics
     total_students = StudentProfile.objects.count()
@@ -781,34 +932,35 @@ def admin_dashboard(request):
     # Generate demo trend data for the last 30 days
     from datetime import date
 
-    def generate_demo_trend_data():
+    def generate_demo_trend_data() -> dict[str, list[dict[str, Any]]]:
         """Generate realistic demo data for the last 30 days"""
         thirty_days_ago = datetime.now() - timedelta(days=30)
         dates = [(thirty_days_ago + timedelta(days=i)).date() for i in range(30)]
 
         # Generate realistic trends with some variability but always increasing overall
-        def generate_trend(base_rate, growth_factor, variability=0.3):
-            trend = []
+        def generate_trend(
+            base_rate: float, growth_factor: float, variability: float = 0.3
+        ) -> list[dict[str, Any]]:
+            trend: list[dict[str, Any]] = []
             cumulative_base = base_rate
             for i, day in enumerate(dates):
                 # Base growth with some randomness but ensure minimum growth
                 daily_count = int(cumulative_base + random.uniform(0, variability))
 
                 # Add some realistic patterns (weekends typically lower, some random spikes)
-                if day.weekday() >= 5:  # Weekend - reduce but don't go below previous trend
+                if (
+                    day.weekday() >= 5
+                ):  # Weekend - reduce but don't go below previous trend
                     daily_count = max(daily_count, int(daily_count * 0.7))
                 elif random.random() < 0.1:  # 10% chance of spike
                     daily_count = int(daily_count * 1.5)
 
                 # Ensure we never decrease from the overall trend
                 if i > 0 and len(trend) > 0:
-                    daily_count = max(daily_count, trend[-1]['count'])
+                    daily_count = max(daily_count, int(trend[-1]["count"]))
 
                 # Always add data points to show consistent growth
-                trend.append({
-                    'date': day.strftime('%Y-%m-%d'),
-                    'count': daily_count
-                })
+                trend.append({"date": day.strftime("%Y-%m-%d"), "count": daily_count})
 
                 # Gradually increase the baseline for next day
                 cumulative_base += growth_factor
@@ -816,50 +968,68 @@ def admin_dashboard(request):
             return trend
 
         return {
-            'students': generate_trend(base_rate=2.5, growth_factor=0.15, variability=1.2),  # Highest volume
-            'employers': generate_trend(base_rate=0.8, growth_factor=0.05, variability=0.4), # Medium volume
-            'projects': generate_trend(base_rate=1.2, growth_factor=0.08, variability=0.6)   # Between students and employers
+            "students": generate_trend(
+                base_rate=2.5, growth_factor=0.15, variability=1.2
+            ),  # Highest volume
+            "employers": generate_trend(
+                base_rate=0.8, growth_factor=0.05, variability=0.4
+            ),  # Medium volume
+            "projects": generate_trend(
+                base_rate=1.2, growth_factor=0.08, variability=0.6
+            ),  # Between students and employers
         }
 
     # Get real data first, then supplement with demo data for better visualization
     thirty_days_ago = datetime.now() - timedelta(days=30)
 
     # Get actual data (might be sparse for new installations)
-    real_student_trend = StudentProfile.objects.filter(
-        created_at__gte=thirty_days_ago
-    ).extra({'date': 'date(created_at)'}).values('date').annotate(
-        count=Count('id')
-    ).order_by('date')
+    real_student_trend = (
+        StudentProfile.objects.filter(created_at__gte=thirty_days_ago)
+        .extra({"date": "date(created_at)"})
+        .values("date")
+        .annotate(count=Count("id"))
+        .order_by("date")
+    )
 
-    real_employer_trend = EmployerProfile.objects.filter(
-        created_at__gte=thirty_days_ago
-    ).extra({'date': 'date(created_at)'}).values('date').annotate(
-        count=Count('id')
-    ).order_by('date')
+    real_employer_trend = (
+        EmployerProfile.objects.filter(created_at__gte=thirty_days_ago)
+        .extra({"date": "date(created_at)"})
+        .values("date")
+        .annotate(count=Count("id"))
+        .order_by("date")
+    )
 
-    real_project_trend = Project.objects.filter(
-        created_at__gte=thirty_days_ago
-    ).extra({'date': 'date(created_at)'}).values('date').annotate(
-        count=Count('id')
-    ).order_by('date')
+    real_project_trend = (
+        Project.objects.filter(created_at__gte=thirty_days_ago)
+        .extra({"date": "date(created_at)"})
+        .values("date")
+        .annotate(count=Count("id"))
+        .order_by("date")
+    )
 
     # Use demo data if we don't have enough real data for a good demo
-    total_real_data_points = len(real_student_trend) + len(real_employer_trend) + len(real_project_trend)
+    total_real_data_points = (
+        len(real_student_trend) + len(real_employer_trend) + len(real_project_trend)
+    )
 
     if total_real_data_points < 10:  # If we have sparse real data, use demo data
         demo_data = generate_demo_trend_data()
-        student_trend_data = demo_data['students']
-        employer_trend_data = demo_data['employers']
-        project_trend_data = demo_data['projects']
+        student_trend_data = demo_data["students"]
+        employer_trend_data = demo_data["employers"]
+        project_trend_data = demo_data["projects"]
     else:
         # Convert real data to the same format
-        def format_real_trend_data(queryset):
+        def format_real_trend_data(queryset: QuerySet) -> list[dict[str, str | int]]:
             data = []
             for item in queryset:
-                data.append({
-                    'date': item['date'].strftime('%Y-%m-%d') if isinstance(item['date'], date) else str(item['date']),
-                    'count': item['count']
-                })
+                data.append(
+                    {
+                        "date": item["date"].strftime("%Y-%m-%d")
+                        if isinstance(item["date"], date)
+                        else str(item["date"]),
+                        "count": item["count"],
+                    }
+                )
             return data
 
         student_trend_data = format_real_trend_data(real_student_trend)
@@ -867,57 +1037,75 @@ def admin_dashboard(request):
         project_trend_data = format_real_trend_data(real_project_trend)
 
     context = {
-        'pending_employers': pending_employers,
-        'approved_employers': approved_employers,
-        'stats': {
-            'total_students': total_students,
-            'total_employers': total_employers,
-            'total_projects': total_projects,
-            'active_projects': active_projects,
-            'pending_approvals': pending_employers.count()
+        "pending_employers": pending_employers,
+        "approved_employers": approved_employers,
+        "stats": {
+            "total_students": total_students,
+            "total_employers": total_employers,
+            "total_projects": total_projects,
+            "active_projects": active_projects,
+            "pending_approvals": pending_employers.count(),
         },
-        'trend_data': {
-            'students': json.dumps(student_trend_data),
-            'employers': json.dumps(employer_trend_data),
-            'projects': json.dumps(project_trend_data)
-        }
+        "trend_data": {
+            "students": json.dumps(student_trend_data),
+            "employers": json.dumps(employer_trend_data),
+            "projects": json.dumps(project_trend_data),
+        },
     }
 
-    return render(request, 'admin_dashboard.html', context)
+    return render(request, "admin_dashboard.html", context)
+
 
 @staff_member_required
 @require_http_methods(["POST"])
-def approve_employer(request, employer_id):
+def approve_employer(request: HttpRequest, employer_id: int) -> JsonResponse:
     """Approve a pending employer"""
     try:
-        employer = EmployerProfile.objects.get(id=employer_id, approval_status='pending')
-        employer.approval_status = 'approved'
+        employer = EmployerProfile.objects.get(
+            id=employer_id, approval_status="pending"
+        )
+        employer.approval_status = "approved"
         employer.save()
 
-        messages.success(request, f'Employer "{employer.company_name}" has been approved.')
-        return JsonResponse({'status': 'success', 'message': 'Employer approved successfully'})
+        messages.success(
+            request, f'Employer "{employer.company_name}" has been approved.'
+        )
+        return JsonResponse(
+            {"status": "success", "message": "Employer approved successfully"}
+        )
 
     except EmployerProfile.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Employer not found or already processed'}, status=404)
+        return JsonResponse(
+            {"status": "error", "message": "Employer not found or already processed"},
+            status=404,
+        )
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
 
 @staff_member_required
 @require_http_methods(["POST"])
-def reject_employer(request, employer_id):
+def reject_employer(request: HttpRequest, employer_id: int) -> JsonResponse:
     """Reject a pending employer"""
     try:
-        employer = EmployerProfile.objects.get(id=employer_id, approval_status='pending')
-        reason = request.POST.get('reason', 'No reason provided')
+        employer = EmployerProfile.objects.get(
+            id=employer_id, approval_status="pending"
+        )
+        reason = request.POST.get("reason", "No reason provided")
 
-        employer.approval_status = 'rejected'
+        employer.approval_status = "rejected"
         employer.rejection_reason = reason
         employer.save()
 
-        messages.success(request, f'Employer "{employer.company_name}" has been rejected.')
-        return JsonResponse({'status': 'success', 'message': 'Employer rejected'})
+        messages.success(
+            request, f'Employer "{employer.company_name}" has been rejected.'
+        )
+        return JsonResponse({"status": "success", "message": "Employer rejected"})
 
     except EmployerProfile.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Employer not found or already processed'}, status=404)
+        return JsonResponse(
+            {"status": "error", "message": "Employer not found or already processed"},
+            status=404,
+        )
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)

@@ -9,165 +9,512 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
+        ("auth", "0012_alter_user_first_name_max_length"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('password', models.CharField(max_length=128, verbose_name='password')),
-                ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
-                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
-                ('username', models.CharField(error_messages={'unique': 'A user with that username already exists.'}, help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.', max_length=150, unique=True, validators=[django.contrib.auth.validators.UnicodeUsernameValidator()], verbose_name='username')),
-                ('first_name', models.CharField(blank=True, max_length=150, verbose_name='first name')),
-                ('last_name', models.CharField(blank=True, max_length=150, verbose_name='last name')),
-                ('email', models.EmailField(blank=True, max_length=254, verbose_name='email address')),
-                ('is_staff', models.BooleanField(default=False, help_text='Designates whether the user can log into this admin site.', verbose_name='staff status')),
-                ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
-                ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
-                ('user_type', models.CharField(choices=[('student', 'Student'), ('employer', 'Employer')], max_length=10)),
-                ('email_verified', models.BooleanField(default=False)),
-                ('verification_code', models.CharField(blank=True, max_length=6, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
-                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("password", models.CharField(max_length=128, verbose_name="password")),
+                (
+                    "last_login",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="last login"
+                    ),
+                ),
+                (
+                    "is_superuser",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates that this user has all permissions without explicitly assigning them.",
+                        verbose_name="superuser status",
+                    ),
+                ),
+                (
+                    "username",
+                    models.CharField(
+                        error_messages={
+                            "unique": "A user with that username already exists."
+                        },
+                        help_text="Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.",
+                        max_length=150,
+                        unique=True,
+                        validators=[
+                            django.contrib.auth.validators.UnicodeUsernameValidator()
+                        ],
+                        verbose_name="username",
+                    ),
+                ),
+                (
+                    "first_name",
+                    models.CharField(
+                        blank=True, max_length=150, verbose_name="first name"
+                    ),
+                ),
+                (
+                    "last_name",
+                    models.CharField(
+                        blank=True, max_length=150, verbose_name="last name"
+                    ),
+                ),
+                (
+                    "email",
+                    models.EmailField(
+                        blank=True, max_length=254, verbose_name="email address"
+                    ),
+                ),
+                (
+                    "is_staff",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates whether the user can log into this admin site.",
+                        verbose_name="staff status",
+                    ),
+                ),
+                (
+                    "is_active",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Designates whether this user should be treated as active. Unselect this instead of deleting accounts.",
+                        verbose_name="active",
+                    ),
+                ),
+                (
+                    "date_joined",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now, verbose_name="date joined"
+                    ),
+                ),
+                (
+                    "user_type",
+                    models.CharField(
+                        choices=[("student", "Student"), ("employer", "Employer")],
+                        max_length=10,
+                    ),
+                ),
+                ("email_verified", models.BooleanField(default=False)),
+                (
+                    "verification_code",
+                    models.CharField(blank=True, max_length=6, null=True),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "groups",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="The groups this user belongs to. A user will get all permissions granted to each of their groups.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.group",
+                        verbose_name="groups",
+                    ),
+                ),
+                (
+                    "user_permissions",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="Specific permissions for this user.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.permission",
+                        verbose_name="user permissions",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'user',
-                'verbose_name_plural': 'users',
-                'abstract': False,
+                "verbose_name": "user",
+                "verbose_name_plural": "users",
+                "abstract": False,
             },
             managers=[
-                ('objects', django.contrib.auth.models.UserManager()),
+                ("objects", django.contrib.auth.models.UserManager()),
             ],
         ),
         migrations.CreateModel(
-            name='EmployerProfile',
+            name="EmployerProfile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('company_name', models.CharField(max_length=200)),
-                ('industry', models.CharField(max_length=100)),
-                ('website', models.URLField(blank=True)),
-                ('company_description', models.TextField()),
-                ('company_location', models.CharField(max_length=200)),
-                ('contact_name', models.CharField(max_length=200)),
-                ('contact_title', models.CharField(max_length=200)),
-                ('contact_phone', models.CharField(blank=True, max_length=20)),
-                ('approval_status', models.CharField(choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')], default='pending', max_length=10)),
-                ('approval_notes', models.TextField(blank=True)),
-                ('approved_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('approved_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='approved_employers', to=settings.AUTH_USER_MODEL)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='employer_profile', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("company_name", models.CharField(max_length=200)),
+                ("industry", models.CharField(max_length=100)),
+                ("website", models.URLField(blank=True)),
+                ("company_description", models.TextField()),
+                ("company_location", models.CharField(max_length=200)),
+                ("contact_name", models.CharField(max_length=200)),
+                ("contact_title", models.CharField(max_length=200)),
+                ("contact_phone", models.CharField(blank=True, max_length=20)),
+                (
+                    "approval_status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("approved", "Approved"),
+                            ("rejected", "Rejected"),
+                        ],
+                        default="pending",
+                        max_length=10,
+                    ),
+                ),
+                ("approval_notes", models.TextField(blank=True)),
+                ("approved_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "approved_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="approved_employers",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="employer_profile",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Project',
+            name="Project",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200)),
-                ('description', models.TextField()),
-                ('project_type', models.CharField(choices=[('web_dev', 'Web Development'), ('mobile_app', 'Mobile App'), ('data_analysis', 'Data Analysis'), ('research', 'Research'), ('design', 'Design'), ('marketing', 'Marketing'), ('other', 'Other')], max_length=20)),
-                ('duration', models.CharField(choices=[('1-2_weeks', '1-2 weeks'), ('1_month', '1 month'), ('2-3_months', '2-3 months'), ('3-6_months', '3-6 months'), ('6+_months', '6+ months')], max_length=15)),
-                ('work_type', models.CharField(choices=[('remote', 'Remote'), ('onsite', 'On-site'), ('hybrid', 'Hybrid')], max_length=10)),
-                ('required_skills', models.JSONField(default=list)),
-                ('preferred_skills', models.JSONField(default=list)),
-                ('min_academic_year', models.CharField(blank=True, choices=[('freshman', 'Freshman'), ('sophomore', 'Sophomore'), ('junior', 'Junior'), ('senior', 'Senior'), ('graduate', 'Graduate')], max_length=10)),
-                ('preferred_programs', models.JSONField(default=list)),
-                ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('employer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='projects', to='core.employerprofile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=200)),
+                ("description", models.TextField()),
+                (
+                    "project_type",
+                    models.CharField(
+                        choices=[
+                            ("web_dev", "Web Development"),
+                            ("mobile_app", "Mobile App"),
+                            ("data_analysis", "Data Analysis"),
+                            ("research", "Research"),
+                            ("design", "Design"),
+                            ("marketing", "Marketing"),
+                            ("other", "Other"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "duration",
+                    models.CharField(
+                        choices=[
+                            ("1-2_weeks", "1-2 weeks"),
+                            ("1_month", "1 month"),
+                            ("2-3_months", "2-3 months"),
+                            ("3-6_months", "3-6 months"),
+                            ("6+_months", "6+ months"),
+                        ],
+                        max_length=15,
+                    ),
+                ),
+                (
+                    "work_type",
+                    models.CharField(
+                        choices=[
+                            ("remote", "Remote"),
+                            ("onsite", "On-site"),
+                            ("hybrid", "Hybrid"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                ("required_skills", models.JSONField(default=list)),
+                ("preferred_skills", models.JSONField(default=list)),
+                (
+                    "min_academic_year",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("freshman", "Freshman"),
+                            ("sophomore", "Sophomore"),
+                            ("junior", "Junior"),
+                            ("senior", "Senior"),
+                            ("graduate", "Graduate"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                ("preferred_programs", models.JSONField(default=list)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "employer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="projects",
+                        to="core.employerprofile",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='StudentProfile',
+            name="StudentProfile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('phone', models.CharField(blank=True, max_length=20)),
-                ('academic_year', models.CharField(blank=True, choices=[('freshman', 'Freshman'), ('sophomore', 'Sophomore'), ('junior', 'Junior'), ('senior', 'Senior'), ('graduate', 'Graduate')], max_length=10)),
-                ('university', models.CharField(default='Memorial University of Newfoundland', max_length=200)),
-                ('program', models.CharField(blank=True, max_length=200)),
-                ('resume', models.FileField(blank=True, null=True, upload_to='resumes/')),
-                ('availability', models.JSONField(blank=True, default=list)),
-                ('currently_available', models.CharField(blank=True, choices=[('yes', 'Yes, immediately'), ('no', 'No, not currently'), ('limited', 'Limited availability')], max_length=10)),
-                ('available_date', models.DateField(blank=True, null=True)),
-                ('availability_notes', models.TextField(blank=True)),
-                ('remote_preference', models.CharField(blank=True, choices=[('remote', 'Fully remote'), ('hybrid', 'Hybrid (remote + in-person)'), ('onsite', 'On-site only'), ('flexible', 'Flexible')], max_length=10)),
-                ('location_flexibility', models.CharField(blank=True, choices=[('local', 'Local area only'), ('regional', 'Regional (within state)'), ('national', 'National'), ('international', 'International')], max_length=15)),
-                ('career_goals', models.TextField(blank=True)),
-                ('additional_info', models.TextField(blank=True)),
-                ('profile_complete', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='student_profile', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("phone", models.CharField(blank=True, max_length=20)),
+                (
+                    "academic_year",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("freshman", "Freshman"),
+                            ("sophomore", "Sophomore"),
+                            ("junior", "Junior"),
+                            ("senior", "Senior"),
+                            ("graduate", "Graduate"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "university",
+                    models.CharField(
+                        default="Memorial University of Newfoundland", max_length=200
+                    ),
+                ),
+                ("program", models.CharField(blank=True, max_length=200)),
+                (
+                    "resume",
+                    models.FileField(blank=True, null=True, upload_to="resumes/"),
+                ),
+                ("availability", models.JSONField(blank=True, default=list)),
+                (
+                    "currently_available",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("yes", "Yes, immediately"),
+                            ("no", "No, not currently"),
+                            ("limited", "Limited availability"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                ("available_date", models.DateField(blank=True, null=True)),
+                ("availability_notes", models.TextField(blank=True)),
+                (
+                    "remote_preference",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("remote", "Fully remote"),
+                            ("hybrid", "Hybrid (remote + in-person)"),
+                            ("onsite", "On-site only"),
+                            ("flexible", "Flexible"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "location_flexibility",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("local", "Local area only"),
+                            ("regional", "Regional (within state)"),
+                            ("national", "National"),
+                            ("international", "International"),
+                        ],
+                        max_length=15,
+                    ),
+                ),
+                ("career_goals", models.TextField(blank=True)),
+                ("additional_info", models.TextField(blank=True)),
+                ("profile_complete", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="student_profile",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Reference',
+            name="Reference",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('position', models.CharField(max_length=200)),
-                ('company', models.CharField(max_length=200)),
-                ('email', models.EmailField(max_length=254)),
-                ('phone', models.CharField(blank=True, max_length=20)),
-                ('skill_endorsements', models.TextField(blank=True, help_text='Skills this reference can endorse')),
-                ('student', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='references', to='core.studentprofile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("position", models.CharField(max_length=200)),
+                ("company", models.CharField(max_length=200)),
+                ("email", models.EmailField(max_length=254)),
+                ("phone", models.CharField(blank=True, max_length=20)),
+                (
+                    "skill_endorsements",
+                    models.TextField(
+                        blank=True, help_text="Skills this reference can endorse"
+                    ),
+                ),
+                (
+                    "student",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="references",
+                        to="core.studentprofile",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Employment',
+            name="Employment",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('company', models.CharField(max_length=200)),
-                ('position', models.CharField(max_length=200)),
-                ('start_date', models.DateField()),
-                ('end_date', models.DateField(blank=True, null=True)),
-                ('is_current', models.BooleanField(default=False)),
-                ('description', models.TextField(blank=True)),
-                ('student', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='employment', to='core.studentprofile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("company", models.CharField(max_length=200)),
+                ("position", models.CharField(max_length=200)),
+                ("start_date", models.DateField()),
+                ("end_date", models.DateField(blank=True, null=True)),
+                ("is_current", models.BooleanField(default=False)),
+                ("description", models.TextField(blank=True)),
+                (
+                    "student",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="employment",
+                        to="core.studentprofile",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-start_date'],
+                "ordering": ["-start_date"],
             },
         ),
         migrations.CreateModel(
-            name='Education',
+            name="Education",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('institution', models.CharField(max_length=200)),
-                ('degree', models.CharField(max_length=200)),
-                ('field_of_study', models.CharField(max_length=200)),
-                ('gpa', models.DecimalField(blank=True, decimal_places=2, max_digits=4, null=True)),
-                ('start_date', models.DateField()),
-                ('end_date', models.DateField(blank=True, null=True)),
-                ('is_current', models.BooleanField(default=False)),
-                ('student', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='education', to='core.studentprofile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("institution", models.CharField(max_length=200)),
+                ("degree", models.CharField(max_length=200)),
+                ("field_of_study", models.CharField(max_length=200)),
+                (
+                    "gpa",
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=4, null=True
+                    ),
+                ),
+                ("start_date", models.DateField()),
+                ("end_date", models.DateField(blank=True, null=True)),
+                ("is_current", models.BooleanField(default=False)),
+                (
+                    "student",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="education",
+                        to="core.studentprofile",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-start_date'],
+                "ordering": ["-start_date"],
             },
         ),
         migrations.CreateModel(
-            name='Skill',
+            name="Skill",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('level', models.CharField(choices=[('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Advanced'), ('expert', 'Expert')], max_length=15)),
-                ('experience_description', models.TextField(blank=True)),
-                ('student', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='skills', to='core.studentprofile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                (
+                    "level",
+                    models.CharField(
+                        choices=[
+                            ("beginner", "Beginner"),
+                            ("intermediate", "Intermediate"),
+                            ("advanced", "Advanced"),
+                            ("expert", "Expert"),
+                        ],
+                        max_length=15,
+                    ),
+                ),
+                ("experience_description", models.TextField(blank=True)),
+                (
+                    "student",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="skills",
+                        to="core.studentprofile",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('student', 'name')},
+                "unique_together": {("student", "name")},
             },
         ),
     ]

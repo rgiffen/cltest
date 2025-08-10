@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('core', '0002_alter_user_user_type'),
+        ("core", "0002_alter_user_user_type"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='employerprofile',
-            name='rejection_reason',
+            model_name="employerprofile",
+            name="rejection_reason",
             field=models.TextField(blank=True),
         ),
     ]
