@@ -2,9 +2,16 @@
 AI-powered matching system for connecting students with projects
 """
 
+import logging
 from typing import Any
 
+from django.core.cache import cache
+from django.db import DatabaseError
+
 from .models import Project, StudentProfile
+
+logger = logging.getLogger(__name__)
+
 
 
 class ProjectMatcher:
@@ -45,31 +52,120 @@ class ProjectMatcher:
         self, project: Project, limit: int = 20
     ) -> list[tuple[StudentProfile, dict]]:
         """
-        Find matching students for a project
+        Find matching students for a project with defensive error handling
         Returns list of (student, match_data) tuples sorted by match score
         """
-        students = (
+        # Input validation
+        if not isinstance(project, Project):
+            raise ValueError("project must be a Project instance")
+        if not isinstance(limit, int) or limit <= 0:
+            raise ValueError("limit must be a positive integer")
+        if limit > 100:
+            logger.warning(f"Large limit requested: {limit}, capping at 100")
+            limit = 100
+
+        # Try to get students with error recovery
+        try:
+            students = self._get_eligible_students()
+        except DatabaseError as e:
+            logger.error(f"Database error fetching students: {e}")
+            # Try cached results as fallback
+            students = self._get_cached_students()
+            if not students:
+                logger.error("No cached students available, returning empty results")
+                return []
+
+        matches = []
+        failed_matches = 0
+
+        for student in students:
+            try:
+                match_data = self._calculate_match(student, project)
+                if match_data["score"] > 0:  # Only include students with some match
+                    matches.append((student, match_data))
+            except Exception as e:
+                failed_matches += 1
+                logger.warning(
+                    f"Failed to calculate match for student {student.id}: {e}",
+                    extra={"student_id": student.id, "project_id": project.id},
+                )
+                continue
+
+        if failed_matches > 0:
+            logger.info(
+                f"Failed to match {failed_matches} students out of {len(students)}"
+            )
+
+        # Sort by match score (highest first)
+        matches.sort(key=lambda x: x[1]["score"], reverse=True)
+
+        # Return fallback matches if no good matches found
+        if not matches and len(students) > 0:
+            logger.info(
+                f"No matches found for project {project.id}, returning fallback matches"
+            )
+            return self._get_fallback_matches(project, limit)
+
+        return matches[:limit]
+
+    def _get_eligible_students(self) -> list[StudentProfile]:
+        """Get eligible students with proper error handling"""
+        return list(
             StudentProfile.objects.filter(profile_complete=True, user__is_active=True)
             .select_related("user")
             .prefetch_related("skills", "education", "employment")
         )
 
-        matches = []
+    def _get_cached_students(self) -> list[StudentProfile]:
+        """Get cached student list as fallback"""
+        cache_key = "eligible_students_fallback"
+        cached_students: list[StudentProfile] | None = cache.get(cache_key)
+        if cached_students is None:
+            logger.warning("No cached students available")
+            return []
+        return cached_students
 
-        for student in students:
-            match_data = self._calculate_match(student, project)
-            if match_data["score"] > 0:  # Only include students with some match
-                matches.append((student, match_data))
+    def _get_fallback_matches(
+        self, project: Project, limit: int
+    ) -> list[tuple[StudentProfile, dict]]:
+        """Get basic fallback matches when normal matching fails"""
+        try:
+            # Get a few random active students as fallback
+            fallback_students = StudentProfile.objects.filter(
+                profile_complete=True, user__is_active=True
+            ).select_related("user")[:limit]
 
-        # Sort by match score (highest first)
-        matches.sort(key=lambda x: x[1]["score"], reverse=True)
+            fallback_matches = []
+            for student in fallback_students:
+                match_data = {
+                    "score": 25,  # Low fallback score
+                    "skills_match": 0,
+                    "availability_match": 25,
+                    "academic_match": 25,
+                    "experience_match": 0,
+                    "evidence": ["Fallback match - profile complete"],
+                    "missing_skills": [],
+                    "match_reasons": ["Basic eligibility fallback"],
+                }
+                fallback_matches.append((student, match_data))
 
-        return matches[:limit]
+            return fallback_matches
+        except Exception as e:
+            logger.error(f"Even fallback matching failed: {e}")
+            return []
 
     def _calculate_match(
         self, student: StudentProfile, project: Project
     ) -> dict[str, Any]:
-        """Calculate match score and explanation for a student-project pair"""
+        """Calculate match score and explanation for a student-project pair with validation"""
+        # Input validation
+        if not student or not project:
+            raise ValueError("Both student and project must be provided")
+
+        if not hasattr(student, "skills") or not hasattr(student, "education"):
+            raise ValueError(
+                "Student must have skills and education relationships loaded"
+            )
 
         match_data = {
             "score": 0,
@@ -111,27 +207,48 @@ class ProjectMatcher:
     def _match_skills(
         self, student: StudentProfile, project: Project, match_data: dict[str, Any]
     ) -> float:
-        """Match student skills with project requirements"""
-        student_skills = [skill.name.lower() for skill in student.skills.all()]
-        required_skills = [skill.lower() for skill in project.required_skills]
-        preferred_skills = [skill.lower() for skill in project.preferred_skills]
+        """Match student skills with project requirements with error handling"""
+        try:
+            student_skills = [skill.name.lower() for skill in student.skills.all()]
+        except Exception as e:
+            logger.warning(f"Error fetching student skills for {student.id}: {e}")
+            student_skills = []
+
+        # Safely get project skills with fallback to empty lists
+        try:
+            required_skills = [
+                skill.lower() for skill in (project.required_skills or [])
+            ]
+            preferred_skills = [
+                skill.lower() for skill in (project.preferred_skills or [])
+            ]
+        except (AttributeError, TypeError) as e:
+            logger.warning(f"Error parsing project skills for {project.id}: {e}")
+            required_skills = []
+            preferred_skills = []
 
         if not required_skills and not preferred_skills:
             return 50  # Neutral score if no skills specified
 
-        # Check required skills
+        # Check required skills with error handling
         required_matches = 0
         required_total = len(required_skills)
 
         for req_skill in required_skills:
-            if self._skill_matches(req_skill, student_skills):
-                required_matches += 1
-                match_data["evidence"].append(
-                    f"✓ Has required skill: {req_skill.title()}"
-                )
-                match_data["match_reasons"].append(f"Required skill match: {req_skill}")
-            else:
-                match_data["missing_skills"].append(req_skill.title())
+            try:
+                if self._skill_matches(req_skill, student_skills):
+                    required_matches += 1
+                    match_data["evidence"].append(
+                        f"✓ Has required skill: {req_skill.title()}"
+                    )
+                    match_data["match_reasons"].append(
+                        f"Required skill match: {req_skill}"
+                    )
+                else:
+                    match_data["missing_skills"].append(req_skill.title())
+            except Exception as e:
+                logger.warning(f"Error checking skill match for '{req_skill}': {e}")
+                continue
 
         # Check preferred skills
         preferred_matches = 0
@@ -295,33 +412,116 @@ class ProjectMatcher:
 
 
 def get_project_matches(project_id: int) -> list[tuple[StudentProfile, dict[str, Any]]]:
-    """Convenience function to get matches for a project"""
+    """Convenience function to get matches for a project with validation"""
+    # Input validation
+    if not isinstance(project_id, int) or project_id <= 0:
+        raise ValueError("project_id must be a positive integer")
+
     try:
-        project = Project.objects.get(id=project_id, is_active=True)
+        project = Project.objects.select_related("employer").get(
+            id=project_id, is_active=True
+        )
+
+        # Validate project has required data for matching
+        if not project.employer or project.employer.approval_status != "approved":
+            logger.warning(
+                f"Project {project_id} has unapproved employer, returning empty matches"
+            )
+            return []
+
         matcher = ProjectMatcher()
-        return matcher.find_matches(project)
+
+        # Cache results for 10 minutes to reduce database load
+        cache_key = f"project_matches_{project_id}"
+        cached_result: list[tuple[StudentProfile, dict[str, Any]]] | None = cache.get(cache_key)
+        if cached_result is not None:
+            logger.debug(f"Returning cached matches for project {project_id}")
+            return cached_result
+
+        matches: list[tuple[StudentProfile, dict[str, Any]]] = matcher.find_matches(project)
+
+        # Cache successful results
+        if matches:
+            cache.set(cache_key, matches, timeout=600)  # 10 minutes
+
+        return matches
+
     except Project.DoesNotExist:
+        logger.warning(f"Project {project_id} not found or inactive")
+        return []
+    except Exception as e:
+        logger.error(
+            f"Error getting matches for project {project_id}: {e}", exc_info=True
+        )
         return []
 
 
 def get_student_projects(
     student_profile: StudentProfile,
 ) -> list[tuple[Project, dict[str, Any]]]:
-    """Find relevant projects for a student"""
-    active_projects = Project.objects.filter(
-        is_active=True, employer__approval_status="approved"
-    ).select_related("employer__user")
+    """Find relevant projects for a student with defensive programming"""
+    # Input validation
+    if not isinstance(student_profile, StudentProfile):
+        raise ValueError("student_profile must be a StudentProfile instance")
 
-    matcher = ProjectMatcher()
-    matches = []
+    if not student_profile.profile_complete:
+        logger.warning(
+            f"Student {student_profile.id} profile incomplete, returning empty results"
+        )
+        return []
 
-    for project in active_projects:
-        # Reverse the matching logic
-        match_data = matcher._calculate_match(student_profile, project)
-        if match_data["score"] > 30:  # Threshold for relevance
-            matches.append((project, match_data))
+    try:
+        # Cache check first
+        cache_key = f"student_projects_{student_profile.id}"
+        cached_result: list[tuple[Project, dict[str, Any]]] | None = cache.get(cache_key)
+        if cached_result is not None:
+            logger.debug(f"Returning cached projects for student {student_profile.id}")
+            return cached_result
 
-    # Sort by match score
-    matches.sort(key=lambda x: x[1]["score"], reverse=True)
+        active_projects = Project.objects.filter(
+            is_active=True, employer__approval_status="approved"
+        ).select_related("employer__user")[:50]  # Limit to prevent excessive processing
 
-    return matches[:10]  # Return top 10 matches
+        if not active_projects.exists():
+            logger.info("No active approved projects available")
+            return []
+
+        matcher = ProjectMatcher()
+        matches = []
+        failed_matches = 0
+
+        for project in active_projects:
+            try:
+                # Reverse the matching logic
+                match_data = matcher._calculate_match(student_profile, project)
+                if match_data["score"] > 30:  # Threshold for relevance
+                    matches.append((project, match_data))
+            except Exception as e:
+                failed_matches += 1
+                logger.warning(
+                    f"Failed to match project {project.id} to student {student_profile.id}: {e}"
+                )
+                continue
+
+        if failed_matches > 0:
+            logger.info(
+                f"Failed to match {failed_matches} projects for student {student_profile.id}"
+            )
+
+        # Sort by match score
+        matches.sort(key=lambda x: x[1]["score"], reverse=True)
+
+        result = matches[:10]  # Return top 10 matches
+
+        # Cache successful results
+        if result:
+            cache.set(cache_key, result, timeout=300)  # 5 minutes
+
+        return result
+
+    except Exception as e:
+        logger.error(
+            f"Error finding projects for student {student_profile.id}: {e}",
+            exc_info=True,
+        )
+        return []

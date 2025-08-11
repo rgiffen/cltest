@@ -1,12 +1,17 @@
 import json
+import logging
 import random
+from collections.abc import Callable
 from datetime import date, datetime
+from functools import wraps
 from typing import Any, cast
 
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
@@ -21,6 +26,113 @@ from core.models import (
     StudentProfile,
     User,
 )
+
+logger = logging.getLogger(__name__)
+
+
+class ProfileCreationError(Exception):
+    """Custom exception for profile creation failures"""
+
+    pass
+
+
+def handle_profile_errors(func: Callable[..., JsonResponse]) -> Callable[..., JsonResponse]:
+    """Decorator to handle common profile creation/update errors"""
+
+    @wraps(func)
+    def wrapper(request: HttpRequest, *args: object, **kwargs: object) -> JsonResponse:
+        try:
+            return func(request, *args, **kwargs)
+        except ProfileCreationError as e:
+            logger.warning(f"Profile operation failed in {func.__name__}: {e}")
+            return JsonResponse({"status": "error", "message": str(e)})
+        except ValidationError as e:
+            logger.warning(f"Validation error in {func.__name__}: {e}")
+            error_msg = "Please check your input data for errors."
+            if hasattr(e, "message_dict"):
+                # Extract first error message for user-friendly display
+                first_errors = next(iter(e.message_dict.values()))
+                if first_errors:
+                    error_msg = first_errors[0]
+            return JsonResponse({"status": "error", "message": error_msg})
+        except IntegrityError as e:
+            logger.error(f"Database integrity error in {func.__name__}: {e}")
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Data conflict occurred. Please try again.",
+                }
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in {func.__name__}: {e}", exc_info=True)
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "An unexpected error occurred. Please try again.",
+                }
+            )
+
+    return wrapper
+
+
+def validate_required_profile_fields(data: dict, required_fields: list[str]) -> None:
+    """Validate that required profile fields are present and not empty"""
+    missing_fields = []
+    for field in required_fields:
+        value = data.get(field)
+        if not value or (isinstance(value, str) and not value.strip()):
+            missing_fields.append(field)
+
+    if missing_fields:
+        field_names = ", ".join(missing_fields)
+        raise ProfileCreationError(
+            f"Required fields are missing or empty: {field_names}"
+        )
+
+
+def sanitize_profile_data(post_data: dict) -> dict[str, Any]:
+    """Sanitize form data for profile creation/updates"""
+    sanitized = {}
+
+    # Define max lengths for various fields
+    field_limits = {
+        "phone": 20,
+        "academic_year": 50,
+        "program": 200,
+        "availability_notes": 500,
+        "location_flexibility": 200,
+        "career_goals": 1000,
+        "additional_info": 1000,
+        "company_name": 200,
+        "contact_name": 100,
+        "contact_title": 100,
+        "industry": 100,
+        "company_size": 50,
+        "website": 500,
+        "description": 2000,
+    }
+
+    for key, value in post_data.items():
+        if isinstance(value, str):
+            # Strip whitespace and apply length limits
+            cleaned = value.strip()
+            max_length = field_limits.get(key, 255)
+            if len(cleaned) > max_length:
+                logger.warning(
+                    f"Field '{key}' truncated from {len(cleaned)} to {max_length} characters"
+                )
+                cleaned = cleaned[:max_length]
+
+            # Basic XSS prevention
+            if "<" in cleaned or ">" in cleaned:
+                logger.warning(f"Potential XSS attempt in field '{key}', sanitizing")
+                cleaned = cleaned.replace("<", "").replace(">", "")
+
+            sanitized[key] = cleaned
+        else:
+            sanitized[key] = value
+
+    return sanitized
 
 
 def parse_date_string(date_str: str | None) -> date | None:
@@ -139,75 +251,137 @@ def process_student_registration(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"status": "success", "step": current_step})
 
 
+@handle_profile_errors
 def create_student_profile(request: HttpRequest) -> JsonResponse:
-    """Create the complete student profile after account exists"""
+    """Create the complete student profile after account exists with transaction safety"""
     auth_user = cast(User, request.user)
 
-    try:
-        # User should already be authenticated at this point
-        if not auth_user.is_authenticated or auth_user.user_type != "student":
-            return JsonResponse(
-                {"status": "error", "message": "Invalid session. Please start over."}
-            )
+    # User should already be authenticated at this point
+    if not auth_user.is_authenticated or auth_user.user_type != "student":
+        raise ProfileCreationError("Invalid session. Please start over.")
 
-        # Check if profile already exists
-        if hasattr(auth_user, "student_profile"):
-            return JsonResponse(
-                {"status": "error", "message": "Profile already exists."}
-            )
+    # Check if profile already exists
+    if hasattr(auth_user, "student_profile"):
+        raise ProfileCreationError("Profile already exists.")
 
-        # Collect external links
+    # Sanitize input data
+    sanitized_data = sanitize_profile_data(dict(request.POST.items()))
+
+    # Validate required fields
+    required_fields = ["academic_year", "program", "currently_available"]
+    validate_required_profile_fields(sanitized_data, required_fields)
+
+    # Validate academic year
+    valid_academic_years = ["freshman", "sophomore", "junior", "senior", "graduate"]
+    if sanitized_data.get("academic_year") not in valid_academic_years:
+        raise ProfileCreationError(
+            f"Invalid academic year. Must be one of: {', '.join(valid_academic_years)}"
+        )
+
+    # Validate availability
+    valid_availability = ["yes", "no", "limited"]
+    if sanitized_data.get("currently_available") not in valid_availability:
+        raise ProfileCreationError(
+            f"Invalid availability status. Must be one of: {', '.join(valid_availability)}"
+        )
+
+    logger.info(f"Creating student profile for user {auth_user.id}")
+
+    # Use atomic transaction to ensure data consistency
+    with transaction.atomic():
+        # Collect and validate external links
         external_links = {}
-        if request.POST.get("linkedin_url"):
-            external_links["linkedin"] = request.POST.get("linkedin_url")
-        if request.POST.get("github_url"):
-            external_links["github"] = request.POST.get("github_url")
-        if request.POST.get("portfolio_url"):
-            external_links["portfolio"] = request.POST.get("portfolio_url")
-        if request.POST.get("other_url"):
-            external_links["other"] = request.POST.get("other_url")
+        url_fields = ["linkedin_url", "github_url", "portfolio_url", "other_url"]
+
+        for field in url_fields:
+            url = sanitized_data.get(field)
+            if url:
+                # Basic URL validation
+                if not (url.startswith("http://") or url.startswith("https://")):
+                    logger.warning(f"Invalid URL format for {field}, skipping: {url}")
+                    continue
+                if len(url) > 500:
+                    logger.warning(f"URL too long for {field}, truncating")
+                    url = url[:500]
+
+                field_key = field.replace("_url", "")
+                external_links[field_key] = url
 
         # Create student profile
         profile = StudentProfile.objects.create(
             user=auth_user,
-            phone=request.POST.get("phone", ""),
-            academic_year=request.POST.get("academic_year", ""),
-            program=request.POST.get("program", ""),
-            currently_available=request.POST.get("currently_available", ""),
-            available_date=request.POST.get("available_date") or None,
-            availability_notes=request.POST.get("availability_notes", ""),
-            remote_preference=request.POST.get("remote_preference", ""),
-            location_flexibility=request.POST.get("location_flexibility", ""),
-            career_goals=request.POST.get("career_goals", ""),
-            additional_info=request.POST.get("additional_info", ""),
+            phone=sanitized_data.get("phone", ""),
+            academic_year=sanitized_data.get("academic_year", ""),
+            program=sanitized_data.get("program", ""),
+            currently_available=sanitized_data.get("currently_available", ""),
+            available_date=sanitized_data.get("available_date") or None,
+            availability_notes=sanitized_data.get("availability_notes", ""),
+            remote_preference=sanitized_data.get("remote_preference", ""),
+            location_flexibility=sanitized_data.get("location_flexibility", ""),
+            career_goals=sanitized_data.get("career_goals", ""),
+            additional_info=sanitized_data.get("additional_info", ""),
             availability=request.POST.getlist("availability"),
             external_links=external_links,
             profile_complete=True,
         )
 
-        # Create education entries
+        # Validate the profile before proceeding
+        profile.full_clean()
+
+        # Create education entries with validation
         education_count = 0
+        created_education = 0
+
         while f"education_institution_{education_count}" in request.POST:
-            institution = request.POST.get(f"education_institution_{education_count}")
-            if institution:
-                Education.objects.create(
-                    student=profile,
-                    institution=institution,
-                    degree=request.POST.get(f"education_degree_{education_count}", ""),
-                    field_of_study=request.POST.get(
-                        f"education_field_{education_count}", ""
-                    ),
-                    gpa=request.POST.get(f"education_gpa_{education_count}") or None,
-                    start_date=parse_required_date_string(
-                        request.POST.get(f"education_start_{education_count}")
-                    ),
-                    end_date=parse_date_string(
-                        request.POST.get(f"education_end_{education_count}")
-                    ),
-                    is_current=bool(
-                        request.POST.get(f"education_current_{education_count}")
-                    ),
-                )
+            institution = sanitized_data.get(f"education_institution_{education_count}")
+            if institution and institution.strip():
+                try:
+                    # Validate GPA if provided
+                    gpa_str = sanitized_data.get(f"education_gpa_{education_count}")
+                    gpa = None
+                    if gpa_str:
+                        try:
+                            gpa = float(gpa_str)
+                            if gpa < 0 or gpa > 4.0:
+                                logger.warning(
+                                    f"Invalid GPA value: {gpa}, setting to None"
+                                )
+                                gpa = None
+                        except (ValueError, TypeError):
+                            logger.warning(
+                                f"Invalid GPA format: {gpa_str}, setting to None"
+                            )
+                            gpa = None
+
+                    education = Education.objects.create(
+                        student=profile,
+                        institution=institution.strip(),
+                        degree=sanitized_data.get(
+                            f"education_degree_{education_count}", ""
+                        ),
+                        field_of_study=sanitized_data.get(
+                            f"education_field_{education_count}", ""
+                        ),
+                        gpa=gpa,
+                        start_date=parse_required_date_string(
+                            request.POST.get(f"education_start_{education_count}")
+                        ),
+                        end_date=parse_date_string(
+                            request.POST.get(f"education_end_{education_count}")
+                        ),
+                        is_current=bool(
+                            request.POST.get(f"education_current_{education_count}")
+                        ),
+                    )
+                    education.full_clean()
+                    created_education += 1
+
+                except ValidationError as e:
+                    logger.warning(
+                        f"Skipping invalid education entry {education_count}: {e}"
+                    )
+                    continue
+
             education_count += 1
 
         # Create employment entries
@@ -302,59 +476,64 @@ def create_student_profile(request: HttpRequest) -> JsonResponse:
             }
         )
 
-    except Exception as e:
-        return JsonResponse(
-            {"status": "error", "message": f"Error creating profile: {str(e)}"}
-        )
-
 
 @require_http_methods(["POST"])
+@handle_profile_errors
 def create_student_account(request: HttpRequest) -> JsonResponse:
-    """Create student account with email/password validation"""
-    try:
-        # Get form data
-        email = request.POST.get("email", "").strip().lower()
-        password = request.POST.get("password", "")
-        confirm_password = request.POST.get("confirm_password", "")
-        first_name = request.POST.get("first_name", "").strip()
-        last_name = request.POST.get("last_name", "").strip()
+    """Create student account with email/password validation and transaction safety"""
+    # Get and sanitize form data
+    sanitized_data = sanitize_profile_data(dict(request.POST.items()))
 
-        # Validate @mun.ca email
-        if not email.endswith("@mun.ca"):
-            return JsonResponse(
-                {
-                    "status": "error",
-                    "message": "Only @mun.ca email addresses are accepted for student accounts.",
-                }
-            )
+    email = sanitized_data.get("email", "").strip().lower()
+    password = request.POST.get("password", "")  # Don't sanitize passwords
+    confirm_password = request.POST.get("confirm_password", "")
+    first_name = sanitized_data.get("first_name", "").strip()
+    last_name = sanitized_data.get("last_name", "").strip()
 
-        # Check if email already exists
+    # Validate required fields
+    required_fields = ["email", "password", "first_name", "last_name"]
+    form_data = {
+        "email": email,
+        "password": password,
+        "first_name": first_name,
+        "last_name": last_name,
+    }
+    validate_required_profile_fields(form_data, required_fields)
+
+    # Validate email format and domain
+    if "@" not in email or not email.endswith("@mun.ca"):
+        raise ProfileCreationError(
+            "Only @mun.ca email addresses are accepted for student accounts."
+        )
+
+    if len(email) > 254:  # RFC limit
+        raise ProfileCreationError("Email address is too long.")
+
+    # Validate name fields
+    if len(first_name) < 1 or len(last_name) < 1:
+        raise ProfileCreationError("First and last names must be provided.")
+
+    if len(first_name) > 100 or len(last_name) > 100:
+        raise ProfileCreationError("Names are too long.")
+
+    # Validate password strength
+    if len(password) < 8:
+        raise ProfileCreationError("Password must be at least 8 characters long.")
+
+    if len(password) > 128:  # Reasonable upper limit
+        raise ProfileCreationError("Password is too long.")
+
+    if password != confirm_password:
+        raise ProfileCreationError("Passwords do not match.")
+
+    logger.info(f"Creating student account for email: {email}")
+
+    # Use atomic transaction for account creation
+    with transaction.atomic():
+        # Double-check email uniqueness within transaction
         if User.objects.filter(email=email).exists():
-            return JsonResponse(
-                {
-                    "status": "error",
-                    "message": "An account with this email already exists. Please sign in instead.",
-                }
-            )
-
-        # Validate required fields
-        if not all([email, password, first_name, last_name]):
-            return JsonResponse(
-                {"status": "error", "message": "All fields are required."}
-            )
-
-        # Validate password
-        if len(password) < 8:
-            return JsonResponse(
-                {
-                    "status": "error",
-                    "message": "Password must be at least 8 characters long.",
-                }
-            )
-
-        if password != confirm_password:
-            return JsonResponse(
-                {"status": "error", "message": "Passwords do not match."}
+            raise ProfileCreationError(
+                "An account with this email already exists. Please sign in instead."
             )
 
         # Create user account
@@ -367,19 +546,26 @@ def create_student_account(request: HttpRequest) -> JsonResponse:
             user_type="student",
         )
 
+        # Validate user before proceeding
+        user.full_clean()
+
+        # Defensive check: ensure user was created with an ID
+        if not user.id:
+            raise ProfileCreationError("Failed to create user account - no ID assigned")
+
         # Log the user in
         login(request, user)
+
+        logger.info(
+            f"Student account created successfully for: {email} (ID: {user.id})"
+        )
 
         return JsonResponse(
             {
                 "status": "success",
                 "message": "Account created successfully!",
+                "user_id": user.id,  # Now guaranteed to be not None with type hint
             }
-        )
-
-    except Exception as e:
-        return JsonResponse(
-            {"status": "error", "message": f"Error creating account: {str(e)}"}
         )
 
 

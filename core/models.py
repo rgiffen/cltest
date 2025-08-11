@@ -1,9 +1,21 @@
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
 
+if TYPE_CHECKING:
+    from django.db.models import Manager
+
 
 class User(AbstractUser):
+    # Explicit type hint for id field (inherited from AbstractUser)
+    id: int
+
+    # Type hints for reverse relationships (for Pylance/IDE support)
+    if TYPE_CHECKING:
+        student_profile: "StudentProfile"
+        employer_profile: "EmployerProfile"
     USER_TYPE_CHOICES = [
         ("student", "Student"),
         ("employer", "Employer"),
@@ -24,6 +36,22 @@ class User(AbstractUser):
 
 
 class StudentProfile(models.Model):
+    # Explicit type hint for id field (inherited from Model)
+    id: int
+
+    # Type hints for reverse relationships (for Pylance/IDE support)
+    if TYPE_CHECKING:
+        education: "Manager[Education]"
+        employment: "Manager[Employment]"
+        skills: "Manager[Skill]"
+        references: "Manager[Reference]"
+
+        # Django choice field display methods
+        def get_academic_year_display(self) -> str: ...
+        def get_currently_available_display(self) -> str: ...
+        def get_remote_preference_display(self) -> str: ...
+        def get_location_flexibility_display(self) -> str: ...
+
     ACADEMIC_YEAR_CHOICES = [
         ("freshman", "Freshman"),
         ("sophomore", "Sophomore"),
@@ -119,6 +147,8 @@ class StudentProfile(models.Model):
 
 
 class Education(models.Model):
+    # Explicit type hint for id field (inherited from Model)
+    id: int
     student = models.ForeignKey(
         StudentProfile, on_delete=models.CASCADE, related_name="education"
     )
@@ -138,6 +168,8 @@ class Education(models.Model):
 
 
 class Employment(models.Model):
+    # Explicit type hint for id field (inherited from Model)
+    id: int
     student = models.ForeignKey(
         StudentProfile, on_delete=models.CASCADE, related_name="employment"
     )
@@ -156,6 +188,8 @@ class Employment(models.Model):
 
 
 class Skill(models.Model):
+    # Explicit type hint for id field (inherited from Model)
+    id: int
     SKILL_LEVEL_CHOICES = [
         ("beginner", "Beginner"),
         ("intermediate", "Intermediate"),
@@ -178,6 +212,8 @@ class Skill(models.Model):
 
 
 class Reference(models.Model):
+    # Explicit type hint for id field (inherited from Model)
+    id: int
     student = models.ForeignKey(
         StudentProfile, on_delete=models.CASCADE, related_name="references"
     )
@@ -195,6 +231,12 @@ class Reference(models.Model):
 
 
 class EmployerProfile(models.Model):
+    # Explicit type hint for id field (inherited from Model)
+    id: int
+
+    # Type hints for reverse relationships (for Pylance/IDE support)
+    if TYPE_CHECKING:
+        projects: "Manager[Project]"
     APPROVAL_STATUS_CHOICES = [
         ("pending", "Pending"),
         ("approved", "Approved"),
@@ -240,6 +282,8 @@ class EmployerProfile(models.Model):
 
 
 class Project(models.Model):
+    # Explicit type hint for id field (inherited from Model)
+    id: int
     PROJECT_TYPE_CHOICES = [
         ("web_dev", "Web Development"),
         ("mobile_app", "Mobile App"),

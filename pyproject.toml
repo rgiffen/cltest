@@ -3,7 +3,7 @@ name = "cltest"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "django>=5.2.4",
     "matplotlib>=3.10.5",
@@ -18,12 +18,13 @@ dev = [
     "factory-boy>=3.3.3",
     "pytest>=8.4.1",
     "pytest-django>=4.11.1",
+    "pytest-cov>=6.0.0",
+    "coverage>=7.6.0",
     "ruff>=0.12.8",
     "mypy>=1.8.0",
     "django-stubs>=4.2.7",
     "types-requests>=2.31.0",
 ]
-
 
 [tool.ruff]
 # Same as Black's line length
@@ -54,10 +55,6 @@ exclude = [
 # Ignore specific rules if needed
 ignore = [
     "E501",  # line too long (handled by formatter)
-    "ANN101", # Missing type annotation for self in method
-    "ANN102", # Missing type annotation for cls in classmethod
-    "ANN003", # Missing type annotation for **kwargs
-    "ANN401",  # Allow Any in function arguments (common in Django)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -73,7 +70,7 @@ quote-style = "double"
 
 [tool.mypy]
 # Basic mypy configuration for Django projects
-python_version = "3.11"
+python_version = "3.12"
 strict = false  # Start with false, can enable later
 warn_return_any = true
 warn_unused_configs = true
@@ -88,7 +85,7 @@ plugins = ["mypy_django_plugin.main"]
 # Exclude patterns
 exclude = [
     "migrations/",
-    "node_modules/",
+    "node_modules/", 
     ".venv/",
 ]
 
@@ -103,3 +100,63 @@ ignore_errors = true
 [tool.django-stubs]
 django_settings_module = "config.settings"
 strict_settings = true
+
+[tool.pytest.ini_options]
+# Django pytest configuration
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+python_classes = ["Test*", "*Test", "*Tests"]
+python_functions = ["test_*"]
+addopts = [
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--reuse-db",
+]
+testpaths = ["core", "api", "web", "utils"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/migrations/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/node_modules/*",
+    "manage.py",
+    "config/wsgi.py",
+    "config/asgi.py",
+    "*/tests.py",
+    "*/test_*.py",
+    "*/*_test.py",
+    "*/factories.py",
+]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+    "TYPE_CHECKING",
+]
+ignore_errors = true
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"

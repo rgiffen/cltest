@@ -54,7 +54,7 @@ The project follows a separation of concerns with the following organization:
 │   ├── admin.py         # Django admin configuration
 │   └── management/      # Custom Django commands
 ├── api/                 # REST API endpoints
-│   ├── views.py         # API views
+│   ├── views.py         # API views with defensive programming
 │   ├── urls.py          # API URL patterns
 │   └── apps.py          # API app configuration
 ├── web/                 # Web interface
@@ -62,6 +62,9 @@ The project follows a separation of concerns with the following organization:
 │   ├── urls.py          # Web URL patterns
 │   ├── templates/       # HTML templates
 │   └── static/          # CSS, JavaScript, images
+├── utils/               # Django app for future utilities (currently empty)
+│   ├── apps.py          # Utils app configuration
+│   └── __init__.py      # App initialization
 ├── media/               # User uploaded files
 └── doc/                 # Documentation
 ```
@@ -146,14 +149,19 @@ This project uses **Ruff** for code linting and formatting, plus **mypy** for st
 
 #### Project Type Safety Status
 
-This project uses comprehensive type hints across all major modules:
-- Core business logic (`core/`)
-- Web views and API endpoints (`web/`, `api/`)
-- Database models and admin (`core/models.py`, `core/admin.py`)
-- Matching algorithms (`core/matching.py`)
-- Utility modules (`pantone_rgb_converter.py`)
+This project uses comprehensive type hints with modern Python 3.12+ syntax across all major modules:
+- Core business logic (`core/`) - Modern generic syntax and type annotations
+- Web views and API endpoints (`web/`, `api/`) - Defensive programming patterns
+- Database models and admin (`core/models.py`, `core/admin.py`) - Django model typing
+- Matching algorithms (`core/matching.py`) - Advanced generic functions and caching
 
-The codebase maintains high type safety standards, providing better IDE support, runtime error prevention, and code documentation through types.
+The codebase leverages Python 3.12's advanced type system including:
+- Generic function syntax `def func[T](...)`
+- Modern `collections.abc.Callable` usage with proper parameter lists
+- `ParamSpec` for decorator type safety
+- Type parameter syntax for classes and functions
+
+This provides superior IDE support, runtime error prevention, and clear code documentation through types.
 
 #### Running Ruff
 ```bash
@@ -230,22 +238,39 @@ This project has **comprehensive type hint coverage** and requires type hints fo
 
 **Quality Gate**: All code must pass mypy validation before merging.
 
-##### Modern Python Type Syntax (Python 3.9+)
-Use modern built-in types instead of typing module equivalents:
+##### Modern Python Type Syntax (Python 3.12+)
+Use modern built-in types and Python 3.12's advanced generic syntax:
 
 ```python
-from typing import Any  # Still needed for Any type
+from typing import Any, ParamSpec  # Still needed for certain types
+from collections.abc import Callable  # Use collections.abc for Callable
 from datetime import date, datetime
 
-# ✅ MODERN (Use this)
+# ✅ MODERN PYTHON 3.12 (Use this)
 def process_items(data: dict[str, Any]) -> list[tuple[str, int]]:
     pass
 
 def get_users() -> list[User]:
     pass
 
+# ✅ MODERN GENERIC FUNCTIONS (Python 3.12+)
+def create_decorator[T](func: Callable[..., T]) -> Callable[..., T]:
+    pass
+
+# ✅ PROPER CALLABLE SYNTAX (Python 3.12+)
+P = ParamSpec('P')
+
+def monitor_function[T](
+    log_threshold: float = 1.0
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
 # ❌ LEGACY (Don't use for new code)
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Callable as TypingCallable
 def process_items(data: Dict[str, Any]) -> List[Tuple[str, int]]:
     pass
 ```
@@ -308,18 +333,35 @@ def parse_required_date_string(date_str: str | None) -> date:
     return parsed_date if parsed_date else date.today()
 ```
 
-##### Common Type Patterns in This Project
+##### Common Type Patterns in This Project (Python 3.12+)
 ```python
-# Matching algorithm types
+# Matching algorithm types with modern syntax
 def find_matches(self, project: Project, limit: int = 20) -> list[tuple[StudentProfile, dict[str, Any]]]:
     pass
 
-# Complex data processing
-def generate_trend_data() -> dict[str, list[dict[str, Any]]]:
-    pass
+# Modern decorator patterns with ParamSpec (example)
+from typing import ParamSpec
+from collections.abc import Callable
 
-# Optional parameters with defaults
-def get_rgb_from_pantone(self, pantone_code: str) -> tuple[int, int, int] | None:
+P = ParamSpec('P')
+
+def log_calls[T](
+    level: str = 'INFO'
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            # logging logic here
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+# Usage - note the parentheses for parameterized decorators
+@log_calls()
+def some_function(data: str) -> int:
+    return len(data)
+
+# Complex data processing with proper Callable syntax
+def create_processor() -> Callable[[dict[str, Any]], list[dict[str, Any]]]:
     pass
 
 # Union types for flexible returns
@@ -438,10 +480,40 @@ complex_line()  # noqa
 
 ### 7. Testing
 
-*   **Unit Tests:**  Use Django's testing framework to write unit tests for individual components.
-*   **Integration Tests:**  Write integration tests to verify the interaction between different parts of the application.
-*   **Test Coverage:**  Aim for at least 80% test coverage.
-*   **Running Tests:** `python manage.py test`
+This project follows a three-tier testing strategy with strong emphasis on unit and integration testing. See [TESTING.md](TESTING.md) for complete testing guidelines.
+
+**Quick Start:**
+```bash
+# Run all tests
+uv run python manage.py test
+
+# Run with coverage
+uv run coverage run --source='.' manage.py test
+uv run coverage html
+open htmlcov/index.html
+
+# Run specific test categories
+uv run python manage.py test core     # Unit tests
+uv run python manage.py test api      # Integration tests (currently skipped)
+uv run python manage.py test web      # Web interface tests
+```
+
+**Test Structure:**
+- **Unit Tests** (`core/tests.py`): Models, business logic, matching algorithms
+- **Integration Tests** (`api/tests.py`): API endpoints, authentication, caching (currently skipped)
+- **Test Factories** (`core/factories.py`): Realistic test data creation
+
+**Coverage Targets:**
+- Core business logic: 90%+
+- API endpoints: 85%+  
+- Overall project: 85%+
+
+**Key Features:**
+- Factory Boy for test data generation
+- In-memory database for fast test execution
+- Security and authentication testing (planned)
+- Comprehensive error condition coverage
+- AI matching algorithm validation
 
 ### 8. Deployment
 
